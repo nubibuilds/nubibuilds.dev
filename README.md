@@ -73,9 +73,14 @@ Anything in `[SQUARE BRACKETS]` is a placeholder.
 
 ## Deploying
 
-- **Cloudflare Pages:** connect the repository, framework preset *Astro*, build command
-  `pnpm build`, output directory `dist`.
-- **Vercel:** import the repository; Astro is detected automatically.
+The site runs on Cloudflare Workers (static assets) at `nubibuilds.dev`, configured in
+`wrangler.jsonc`.
+
+- **Automatic:** every push to `main` is built and deployed by Cloudflare Workers Builds
+  (build command `pnpm build`, deploy command `npx wrangler deploy`). It does not wait for CI.
+- **Manual:** `pnpm run deploy` builds and deploys from your machine (first time: `pnpm exec wrangler login`).
+  Not `pnpm deploy`, which is a pnpm built-in command.
+- **Vercel** (alternative): import the repository; Astro is detected automatically.
 
 No adapter is needed: the site is static. `.github/workflows/ci.yml` runs the type-check, build,
 end-to-end tests and Lighthouse on every push to `main` and on every pull request.

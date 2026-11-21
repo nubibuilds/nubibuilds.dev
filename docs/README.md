@@ -122,10 +122,13 @@ The 404 page is always `noindex`, whatever this setting says.
 
 ## Deploying
 
-- **Cloudflare Pages:** connect the repository, framework preset Astro, build command `pnpm build`, output directory `dist`.
-- **Vercel:** import the repository; Astro is detected automatically.
+The site runs on Cloudflare Workers as static assets, on the custom domain `nubibuilds.dev`. `wrangler.jsonc` holds the setup: files from `dist/`, `404.html` for unknown paths, and no `workers.dev` or preview addresses, so the site has one address.
 
-No adapter is needed: the site is static. Cache rules for fingerprinted assets are in `public/_headers` (Cloudflare Pages, Netlify) and `vercel.json` (Vercel).
+- **Automatic:** the Worker `nubibuilds` is connected to this repository with Cloudflare Workers Builds (dashboard: Workers & Pages → `nubibuilds` → Settings → Build). Every push to `main` runs `pnpm build`, then `npx wrangler deploy`. It runs separately from GitHub CI and does not wait for the tests to pass.
+- **Manual:** `pnpm run deploy` builds and deploys from your machine. Log in once with `pnpm exec wrangler login`. Use `pnpm run deploy`, not `pnpm deploy`: the latter is a pnpm built-in command.
+- **Vercel** (alternative): import the repository; Astro is detected automatically.
+
+No adapter is needed: the site is static. Cache and security headers are in `public/_headers` (Cloudflare, Netlify) and `vercel.json` (Vercel).
 
 ## Testing and CI
 
