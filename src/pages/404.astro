@@ -1,0 +1,19 @@
+---
+import BaseLayout from '@app/SiteLayout.astro';
+import Section from '@shared/ui/Section.astro';
+import Prompt from '@shared/ui/Prompt.astro';
+import Rain from '@shared/ui/Rain.astro';
+import { BINARY } from '@shared/ui/ornaments';
+---
+
+<BaseLayout title="404" description="Page not found." windowTitle="404" noindex>
+  <Section bordered={false}>
+    <Rain slot="ornament" texts={BINARY} count={14} />
+    <div class="stack" style="--gap: 18px">
+      <Prompt cmd="cd /this-page" />
+      <h1 class="h-page">zsh: no such file or directory</h1>
+      <p class="lead">The page you asked for is not here. It may have moved, or the link may be wrong.</p>
+      <p><a class="cta" href="/">$ cd ~ <span aria-hidden="true">↵</span></a></p>
+    </div>
+  </Section>
+</BaseLayout>

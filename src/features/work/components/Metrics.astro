@@ -1,0 +1,118 @@
+---
+/** The case study's numbers: big gradient values over a bar sparkline in the metric's colour. */
+interface Props {
+  metrics: { value: string; label: string }[];
+}
+
+const { metrics } = Astro.props;
+const colors = ['var(--accent)', 'var(--cyan)', 'var(--violet)', 'var(--coral)'];
+const bars = [3, 5, 4, 6, 5, 7, 6, 8, 7, 9, 8, 10];
+// Columns that leave no orphan box: 4 → 4 / 2×2, 3 → 3 / 3, 2 → 2 / 2, more → rows of 4 / 2.
+const n = metrics.length;
+const wide = Math.min(n, 4);
+const mid = n === 3 ? 3 : Math.min(n, 2);
+---
+
+{
+  metrics.length > 0 && (
+    <ul class="metrics" style={`--wide:${wide};--mid:${mid}`}>
+      {metrics.map((m, i) => (
+        <li class="reveal" style={`--c:${colors[i % colors.length]}`}>
+          <span class="bars" aria-hidden="true">
+            {bars.map((h, j) => (
+              <i style={`--h:${h * 10}%;--j:${j}`} />
+            ))}
+          </span>
+          <strong>{m.value}</strong>
+          <span class="m-label">{m.label}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(var(--wide), minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 26px 24px 22px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: linear-gradient(to top, color-mix(in srgb, var(--c) 8%, transparent), transparent 70%), var(--surface);
+    transition: border-color 0.3s;
+  }
+  li:hover {
+    border-color: color-mix(in srgb, var(--c) 55%, var(--line));
+  }
+  .bars {
+    position: absolute;
+    right: 20px;
+    bottom: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 58%;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .bars i {
+    width: 6px;
+    height: var(--h);
+    background: linear-gradient(to top, var(--c), transparent);
+    transform-origin: 50% 100%;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .bars i {
+      animation: bar-grow 0.9s var(--ease-out) calc(var(--j) * 0.05s + 0.2s) backwards;
+    }
+  }
+  @keyframes bar-grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+  strong {
+    position: relative;
+    font-size: clamp(1.75rem, 3vw, 2.625rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(120deg, var(--hi) 30%, var(--c));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    overflow-wrap: anywhere;
+  }
+  .m-label {
+    position: relative;
+    font-size: 0.84375rem;
+    color: var(--dim);
+  }
+  @media (max-width: 899.98px) {
+    .metrics {
+      grid-template-columns: repeat(var(--mid), minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 559.98px) {
+    .metrics {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 411.98px) {
+    li {
+      padding: 18px 16px;
+    }
+    strong {
+      font-size: 1.625rem;
+    }
+  }
+</style>

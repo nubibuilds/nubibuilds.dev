@@ -1,0 +1,87 @@
+---
+/**
+ * Full-width page band. Put <Rain> / <Marquee> in the "ornament" slot to get a
+ * moving background; the default slot is centred at page width above it.
+ */
+interface Props {
+  id?: string;
+  bordered?: boolean;
+  narrow?: boolean;
+}
+
+const { id, bordered = true, narrow = false } = Astro.props;
+---
+
+<section id={id} class:list={['section', { bordered }]}>
+  {
+    Astro.slots.has('ornament') && (
+      <div class="orn" aria-hidden="true">
+        <slot name="ornament" />
+      </div>
+    )
+  }
+  <div class:list={['wrap', { narrow }]}>
+    <slot />
+  </div>
+</section>
+
+<script>
+  /*
+   * Bordered sections skip layout while off-screen (`content-visibility: auto`, below). When
+   * keyboard focus jumps into one that has not been laid out yet, the browser may scroll to its
+   * estimated 640px height and, once the real height is known, leave the focused element below
+   * the fold (WCAG 2.4.11, focus not obscured). After layout settles, bring it back into view.
+   * Nothing happens when the browser already scrolled it on screen.
+   */
+  document.addEventListener('focusin', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || !target.closest('.section')) return;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (document.activeElement !== target) return;
+        const rect = target.getBoundingClientRect();
+        // Only when wholly out of view: a tall element (a long code block) may be partly visible on purpose.
+        if (rect.top >= window.innerHeight || rect.bottom <= 0) target.scrollIntoView({ block: 'nearest' });
+      }),
+    );
+  });
+</script>
+
+<style>
+  .section {
+    position: relative;
+    /*
+     * Keep ornaments inside the band. `clip` (not `hidden`) on purpose: `hidden` turns the
+     * section into a scroll container, which stops `position: sticky` children (the contents
+     * lists) from sticking to the viewport. `hidden` stays as the fallback for old browsers.
+     */
+    overflow: hidden;
+    overflow: clip;
+  }
+  .bordered {
+    border-top: 1px dashed var(--line);
+    /* Every section after the first: skip layout, paint and ornament animation while off-screen. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 640px;
+  }
+  .orn {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    opacity: var(--orn);
+    color: var(--accent);
+    font-family: var(--font-ascii);
+    contain: strict;
+  }
+  /* Hidden until the page is parsed (class set in BaseLayout), so the ornaments never jump into place. */
+  :global(html.orn-wait) .orn {
+    visibility: hidden;
+  }
+  @media (max-width: 411.98px) {
+    .orn {
+      opacity: calc(var(--orn) * 0.7);
+    }
+  }
+</style>

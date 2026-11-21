@@ -1,0 +1,47 @@
+---
+/**
+ * Interactive terminal overlay: `help`, `ls`, `cd`, `cat`, `grep`, `theme`, `lang` …
+ * Rendered once per page by SiteLayout. The [ >_ ] button in the header, Ctrl/Cmd+K and the
+ * ` key open it. Without JavaScript the dialog never opens and the button stays hidden.
+ */
+import '../styles/terminal.css';
+import script from '../lib/terminal.js?raw';
+import { frameText } from '@shared/lib/i18n';
+import type { TerminalData } from '../lib/types';
+
+interface Props {
+  data: TerminalData;
+  /** Language of the page; the dialog's labels follow it (command output stays English). */
+  lang?: string;
+}
+
+const t = frameText(Astro.props.lang);
+
+// "<" is escaped so content can never close the <script> element early.
+const json = JSON.stringify(Astro.props.data).replace(/</g, '\\u003c');
+---
+
+<dialog class="term" data-terminal aria-label={t.terminal}>
+  <div class="term-bar">
+    <span>nubibuilds — interactive</span>
+    <button type="button" class="term-close" data-terminal-close aria-label={t.closeTerminal}>[ esc ]</button>
+  </div>
+  <!-- Focusable so the output can be scrolled with the keyboard. -->
+  <div class="term-out" data-terminal-out role="log" aria-live="polite" aria-label={t.terminalOutput} tabindex="0"></div>
+  <form class="term-in" data-terminal-form>
+    <label class="term-prompt" for="terminal-input">nubi:~$</label>
+    <input
+      id="terminal-input"
+      data-terminal-input
+      type="text"
+      autocomplete="off"
+      autocapitalize="off"
+      autocorrect="off"
+      spellcheck="false"
+      enterkeyhint="go"
+      aria-label={t.terminalCommand}
+    />
+  </form>
+</dialog>
+<script type="application/json" data-terminal-data is:inline set:html={json}></script>
+<script is:inline set:html={script}></script>

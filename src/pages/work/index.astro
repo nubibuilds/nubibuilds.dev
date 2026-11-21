@@ -1,0 +1,11 @@
+---
+import BaseLayout from '@app/SiteLayout.astro';
+import WorkIndexPage from '@features/work/components/WorkIndexPage.astro';
+import { workIndexMeta } from '@features/work/lib/routes';
+
+const lang = 'en';
+---
+
+<BaseLayout {...workIndexMeta(lang)}>
+  <WorkIndexPage lang={lang} />
+</BaseLayout>

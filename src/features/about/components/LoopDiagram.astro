@@ -1,0 +1,349 @@
+---
+/**
+ * build → learn → improve, drawn as an orbit. A comet laps the ring, painting each
+ * stage's arc in that stage's colour as it goes; the stage pulses when the comet
+ * arrives, and every finished lap bumps the version in the middle.
+ */
+const C = 160; // centre of the 320×320 viewBox
+const R = 118; // ring radius
+
+/** Point on the ring, `deg` clockwise from 12 o'clock, as viewBox units. */
+const at = (deg: number) => {
+  const rad = (deg * Math.PI) / 180;
+  return { x: C + R * Math.sin(rad), y: C - R * Math.cos(rad) };
+};
+/** Clockwise arc along the ring (spans under 180°). */
+const arc = (from: number, to: number) => {
+  const a = at(from);
+  const b = at(to);
+  return `M ${a.x} ${a.y} A ${R} ${R} 0 0 1 ${b.x} ${b.y}`;
+};
+const pct = (v: number) => `${((v / (C * 2)) * 100).toFixed(3)}%`;
+
+const LAP = 7.5; // seconds per lap
+const stages = [
+  { label: 'build', deg: 0, color: 'var(--accent)' },
+  { label: 'learn', deg: 120, color: 'var(--cyan)' },
+  { label: 'improve', deg: 240, color: 'var(--violet)' },
+].map((s) => ({ ...s, ...at(s.deg), delay: (s.deg / 360) * LAP }));
+
+const tail = at(-60);
+const head = at(0);
+---
+
+<figure class="loop" style={`--lap:${LAP}s`} data-loop>
+  <div class="orbit" role="img" aria-label="Diagram: build leads to learn, learn leads to improve, and improve loops back to build.">
+    <svg viewBox="0 0 320 320" aria-hidden="true">
+      <circle class="dial" cx={C} cy={C} r={R + 18} />
+      <circle class="track" cx={C} cy={C} r={R} />
+
+      {/* Each stage's arc, painted in its colour as the comet passes over it. */}
+      {
+        stages.map((s, i) => (
+          <path class={`seg seg-${i}`} d={arc(s.deg, s.deg + 120)} pathLength="1" style={`--c:${s.color}`} />
+        ))
+      }
+
+      <g class="comet">
+        {/* Lives inside the comet so its stops inherit the comet's changing colour. */}
+        <linearGradient id="loop-tail" gradientUnits="userSpaceOnUse" x1={tail.x} y1={tail.y} x2={head.x} y2={head.y}>
+          <stop offset="0" stop-color="currentColor" stop-opacity="0" />
+          <stop offset="1" stop-color="currentColor" />
+        </linearGradient>
+        <path d={arc(-60, 0)} stroke="url(#loop-tail)" />
+        <circle class="halo" cx={head.x} cy={head.y} r="9" />
+        <circle cx={head.x} cy={head.y} r="4" />
+      </g>
+    </svg>
+
+    {
+      stages.map((s) => (
+        <span class="node" style={`left:${pct(s.x)};top:${pct(s.y)};--c:${s.color};--delay:${s.delay}s`}>
+          {s.label}
+        </span>
+      ))
+    }
+
+    <div class="core" aria-hidden="true">
+      <span class="kw">while (true)</span>
+      <span class="ver" data-loop-ver>v1.0.<span data-loop-n>0</span></span>
+    </div>
+  </div>
+  <figcaption>
+    {
+      stages.map((s) => (
+        <>
+          <span style={`color:${s.color}`}>{s.label}</span>
+          {' → '}
+        </>
+      ))
+    }repeat
+  </figcaption>
+</figure>
+
+<script>
+  for (const loop of document.querySelectorAll<HTMLElement>('[data-loop]')) {
+    const n = loop.querySelector('[data-loop-n]');
+    const ver = loop.querySelector<HTMLElement>('[data-loop-ver]');
+    let laps = 0;
+    // Only fires while the comet animates, so reduced motion keeps a still v1.0.0.
+    loop.querySelector('.comet')?.addEventListener('animationiteration', () => {
+      if (n) n.textContent = String(++laps);
+      ver?.animate(
+        [
+          { transform: 'scale(1.12)', color: 'var(--accent)', textShadow: '0 0 24px var(--accent)' },
+          { transform: 'scale(1)' },
+        ],
+        { duration: 650, easing: 'cubic-bezier(.2,.8,.2,1)' },
+      );
+    });
+  }
+</script>
+
+<style>
+  .loop {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    margin: 0;
+    padding: 28px 24px 22px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* No box: the orbit sits on the page itself. A soft glow and a dot grid fade out
+     from the middle, and the page colour underneath hides ornament text behind the ring. */
+  .loop::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 50%),
+      radial-gradient(color-mix(in srgb, var(--dim) 30%, transparent) 1px, transparent 1.5px) 0 0 / 18px 18px,
+      var(--bg);
+    mask-image: radial-gradient(circle at 50% 45%, #000 35%, transparent 70%);
+  }
+
+  .orbit {
+    position: relative;
+    width: min(100%, 360px);
+    aspect-ratio: 1;
+    container-type: inline-size;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .dial,
+  .comet {
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+  }
+  .dial {
+    fill: none;
+    stroke: var(--line);
+    stroke-dasharray: 1 7;
+  }
+  .track {
+    fill: none;
+    stroke: var(--line);
+  }
+
+  .seg {
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    opacity: 0.55;
+  }
+
+  .comet {
+    color: var(--accent);
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  .comet path {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+  .comet circle {
+    fill: currentColor;
+  }
+  .comet .halo {
+    opacity: 0.18;
+  }
+
+  .node {
+    position: absolute;
+    translate: -50% -50%;
+    padding: 4px 12px;
+    border: 1px solid color-mix(in srgb, var(--c) 45%, var(--line));
+    background: var(--bg);
+    font-size: clamp(11px, 4cqw, 13px);
+    line-height: 1.4;
+    color: var(--c);
+    white-space: nowrap;
+  }
+  /* Ripple that rings out from a stage when the comet lands on it. */
+  .node::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 1px solid var(--c);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .core {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    pointer-events: none;
+  }
+  .kw {
+    font-size: clamp(11px, 3.8cqw, 13px);
+    color: var(--dim);
+  }
+  .ver {
+    font-size: clamp(24px, 10cqw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--hi);
+    font-variant-numeric: tabular-nums;
+  }
+
+  figcaption {
+    font-size: 0.78125rem;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .comet {
+      animation:
+        lap var(--lap) linear infinite,
+        tint var(--lap) linear infinite;
+    }
+    .dial {
+      animation: lap 90s linear infinite reverse;
+    }
+    .seg-0 {
+      animation: draw-0 var(--lap) linear infinite;
+    }
+    .seg-1 {
+      animation: draw-1 var(--lap) linear infinite;
+    }
+    .seg-2 {
+      animation: draw-2 var(--lap) linear infinite;
+    }
+    .node {
+      animation: pass var(--lap) ease-out var(--delay) infinite;
+    }
+    .node::after {
+      animation: ripple var(--lap) ease-out var(--delay) infinite;
+    }
+  }
+
+  @keyframes lap {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+  /* The comet takes on the colour of the stage it is travelling through. */
+  @keyframes tint {
+    0%,
+    28% {
+      color: var(--accent);
+    }
+    36%,
+    61% {
+      color: var(--cyan);
+    }
+    69%,
+    94% {
+      color: var(--violet);
+    }
+    100% {
+      color: var(--accent);
+    }
+  }
+  /* Each arc draws during its third of the lap; older arcs fade so the colour trails the comet. */
+  @keyframes draw-0 {
+    0% {
+      stroke-dashoffset: 1;
+      opacity: 0.55;
+    }
+    33.333% {
+      stroke-dashoffset: 0;
+    }
+    66% {
+      opacity: 0.55;
+    }
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 0;
+    }
+  }
+  @keyframes draw-1 {
+    0%,
+    33.333% {
+      stroke-dashoffset: 1;
+      opacity: 0.55;
+    }
+    66.666% {
+      stroke-dashoffset: 0;
+    }
+    85% {
+      opacity: 0.55;
+    }
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 0.1;
+    }
+  }
+  @keyframes draw-2 {
+    0%,
+    66.666% {
+      stroke-dashoffset: 1;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+  /* A stage flares as the comet reaches it, then settles. */
+  @keyframes pass {
+    0%,
+    4% {
+      border-color: var(--c);
+      background: color-mix(in srgb, var(--c) 18%, var(--bg));
+      box-shadow: 0 0 22px color-mix(in srgb, var(--c) 40%, transparent);
+    }
+    30%,
+    100% {
+      border-color: color-mix(in srgb, var(--c) 45%, var(--line));
+      background: var(--bg);
+      box-shadow: none;
+    }
+  }
+  @keyframes ripple {
+    0% {
+      opacity: 0.9;
+      transform: scale(1);
+    }
+    16%,
+    100% {
+      opacity: 0;
+      transform: scale(1.45, 1.9);
+    }
+  }
+</style>

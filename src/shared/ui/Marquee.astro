@@ -1,0 +1,81 @@
+---
+/**
+ * Horizontal drifting text ornament. Rows alternate direction and speed.
+ * Must be placed in a <Section> "ornament" slot.
+ */
+interface Props {
+  lines: readonly string[];
+  /** Total rows to draw; lines repeat to fill them. Defaults to lines.length (min 2). */
+  rows?: number;
+}
+
+const { lines, rows = Math.max(lines.length, 2) } = Astro.props;
+
+/*
+ * The first row sits in the section's top padding and the last in its bottom padding.
+ * Rows in between are spread evenly but never start above 220px, so they pass behind
+ * cards and body content instead of the prompt and heading at the top of a section.
+ */
+const position = (i: number) => {
+  if (i === 0) return 'top:10px';
+  if (i === rows - 1) return 'bottom:10px';
+  return `top:clamp(220px, ${((i * 100) / (rows - 1)).toFixed(1)}%, calc(100% - 64px))`;
+};
+
+const items = Array.from({ length: rows }, (_, i) => ({
+  text: lines[i % lines.length],
+  position: position(i),
+  duration: 70 + i * 12,
+  reverse: i % 2 === 1,
+}));
+---
+
+{
+  items.map((m) => (
+    <span
+      class:list={['mq', { reverse: m.reverse }]}
+      data-t={m.text}
+      style={`${m.position};animation-duration:${m.duration}s`}
+    ></span>
+  ))
+}
+
+<style>
+  .mq {
+    position: absolute;
+    left: 0;
+    white-space: pre;
+    font-size: 15px;
+    animation: slide 70s linear infinite;
+  }
+  /* Four copies, shifted by a quarter: a seamless loop on wide screens. */
+  .mq::before {
+    content: attr(data-t) attr(data-t) attr(data-t) attr(data-t);
+  }
+  .reverse {
+    animation-direction: reverse;
+  }
+  @keyframes slide {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-25%);
+    }
+  }
+  @media (max-width: 719.98px) {
+    .mq {
+      font-size: 13px;
+    }
+  }
+  @media (max-width: 411.98px) {
+    .mq:nth-child(n + 3) {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mq {
+      animation: none;
+    }
+  }
+</style>

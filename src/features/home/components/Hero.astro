@@ -1,0 +1,525 @@
+---
+/**
+ * Home page hero: the block-letter logo over a two-column intro. The pitch and the calls to
+ * action sit on the left; a `neofetch`-style system card with the key facts sits on the right.
+ * A soft aurora and a dot grid behind it bleed to the full width of the section.
+ */
+import Prompt from '@shared/ui/Prompt.astro';
+import { site } from '@shared/config/site';
+import AsciiLogo from './AsciiLogo.astro';
+
+const { tagline, taglineHighlight, owner } = site;
+const { user, host } = site.prompt;
+
+// Split the tagline around the highlighted words; without a match it is shown plain.
+const at = taglineHighlight ? tagline.indexOf(taglineHighlight) : -1;
+const title =
+  at === -1
+    ? { before: tagline, mark: '', after: '' }
+    : { before: tagline.slice(0, at), mark: taglineHighlight, after: tagline.slice(at + taglineHighlight.length) };
+
+const stack = owner.stack
+  .replace(/,?\s*and more\.?$/i, '')
+  .split(/,\s*/)
+  .filter(Boolean);
+---
+
+<div class="hero">
+  <div class="backdrop" aria-hidden="true"></div>
+
+  <div class="top rise" style="--d: 0s">
+    <Prompt cmd="whoami" />
+    <AsciiLogo />
+  </div>
+
+  <div class="grid">
+    <div class="pitch">
+      <p class="role rise" style="--d: 0.08s">{site.role}</p>
+      <h1 class="title rise" style="--d: 0.14s">
+        {title.before}{title.mark && <span class="mark">{title.mark}</span>}{title.after}
+      </h1>
+      <p class="lead rise" style="--d: 0.2s">{site.description}</p>
+
+      <div class="actions rise" style="--d: 0.26s">
+        <a class="primary" href="/work/">
+          <span class="ps" aria-hidden="true">$</span> cd work/
+          <span class="key" aria-hidden="true">↵</span>
+        </a>
+        <a class="secondary" href="/#contact">./contact <span class="arrow" aria-hidden="true">→</span></a>
+      </div>
+    </div>
+
+    <aside class="sys rise" style="--d: 0.32s" aria-label="At a glance">
+      <div class="chrome" aria-hidden="true">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="chrome-title">{user}@{host} — neofetch</span>
+      </div>
+      <div class="screen">
+        <p class="cmd" aria-hidden="true"><span class="ps">$</span> neofetch --short</p>
+        <p class="who" aria-hidden="true">
+          <span class="u">{user}</span><span class="at">@</span><span class="h">{host}</span>
+        </p>
+        <dl class="facts">
+          <div>
+            <dt>status</dt>
+            <dd class="ok"><span class="pulse" aria-hidden="true"></span>{owner.status.toLowerCase()}</dd>
+          </div>
+          <div>
+            <dt>focus</dt>
+            <dd>{owner.focus}</dd>
+          </div>
+          <div>
+            <dt>essence</dt>
+            <dd>{site.essence}</dd>
+          </div>
+          <div>
+            <dt>loop</dt>
+            <dd><span class="build">build</span> <span class="sep">→</span> <span class="learn">learn</span> <span class="sep">→</span> <span class="improve">improve</span></dd>
+          </div>
+          <div class="xs-hide">
+            <dt>stack</dt>
+            <dd class="tech">{stack.map((item) => <span>{item}</span>)}</dd>
+          </div>
+          <div>
+            <dt>base</dt>
+            <dd>{owner.base}</dd>
+          </div>
+        </dl>
+        <p class="swatches" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="foot rise" style="--d: 0.4s">
+    <Prompt>{site.motto}<span class="cursor" aria-hidden="true"></span></Prompt>
+    <a class="scroll" href="#work">scroll <span aria-hidden="true">↓</span></a>
+  </div>
+</div>
+
+<style>
+  .hero {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(28px, 4vw, 44px);
+    padding: clamp(0px, 1vw, 8px) 0 clamp(4px, 1vw, 12px);
+  }
+
+  /*
+   * Aurora + dot grid. It spans the whole section: out to the viewport edges and over the
+   * section's top and bottom padding (the section clips it). The page colour is not painted,
+   * so the edge rain still shows through.
+   */
+  .backdrop {
+    position: absolute;
+    z-index: -1;
+    inset: calc(-1 * clamp(40px, 6vw, 64px)) calc(50% - 50vw);
+    pointer-events: none;
+    background:
+      radial-gradient(42% 55% at 22% 18%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+      radial-gradient(36% 48% at 82% 58%, color-mix(in srgb, var(--cyan) 10%, transparent), transparent 70%),
+      radial-gradient(30% 40% at 55% 105%, color-mix(in srgb, var(--violet) 9%, transparent), transparent 70%);
+  }
+  .backdrop::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(color-mix(in srgb, var(--dim) 26%, transparent) 1px, transparent 1.5px) 0 0 / 22px 22px;
+    mask-image: radial-gradient(70% 75% at 45% 40%, #000 20%, transparent 75%);
+  }
+
+  .top {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ---------- two columns ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 40px clamp(32px, 5vw, 72px);
+  }
+  @media (max-width: 899.98px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .pitch {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    min-width: 0;
+  }
+  .role {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--cyan);
+    font-size: 0.78125rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .role::before {
+    content: '';
+    width: 28px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), var(--cyan));
+  }
+  .title {
+    font-size: clamp(2rem, 4.1vw, 3rem);
+    line-height: 1.08;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    color: var(--hi);
+    text-wrap: balance;
+  }
+  .mark {
+    color: var(--accent);
+    background: linear-gradient(100deg, var(--accent) 10%, var(--cyan) 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    text-decoration-thickness: 0.05em;
+    text-underline-offset: 0.16em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  .lead {
+    max-width: 52ch;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--fg);
+  }
+
+  /* ---------- calls to action ---------- */
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding-top: 6px;
+  }
+  .primary,
+  .secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 50px;
+    padding: 0 22px;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    transition:
+      transform 0.2s var(--ease-out),
+      box-shadow 0.2s,
+      background 0.2s,
+      border-color 0.2s,
+      color 0.2s;
+  }
+  .primary {
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent),
+      0 14px 36px -14px color-mix(in srgb, var(--accent) 75%, transparent);
+  }
+  .primary:hover {
+    color: var(--on-accent);
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent),
+      0 20px 44px -14px color-mix(in srgb, var(--accent) 85%, transparent);
+  }
+  .primary .ps {
+    color: inherit;
+    opacity: 0.55;
+  }
+  .primary .key {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    margin-left: 4px;
+    border: 1px solid color-mix(in srgb, var(--on-accent) 35%, transparent);
+    font-size: 0.75rem;
+  }
+  .secondary {
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    color: var(--hi);
+    backdrop-filter: blur(6px);
+  }
+  .secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .secondary .arrow {
+    color: var(--dim);
+    transition: transform 0.2s, color 0.2s;
+  }
+  .secondary:hover .arrow {
+    color: var(--accent);
+    transform: translateX(4px);
+  }
+
+  /* ---------- neofetch card ---------- */
+  .sys {
+    min-width: 0;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(8px);
+    box-shadow:
+      0 1px 0 0 color-mix(in srgb, var(--hi) 6%, transparent) inset,
+      0 40px 80px -48px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .chrome {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bar);
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+  .chrome-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dots {
+    display: flex;
+    flex: none;
+    gap: 6px;
+  }
+  .dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .dots i:nth-child(1) {
+    background: var(--coral);
+  }
+  .dots i:nth-child(2) {
+    background: var(--amber);
+  }
+  .dots i:nth-child(3) {
+    background: var(--accent);
+  }
+  .screen {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 20px 20px;
+    font-size: 0.84375rem;
+  }
+  .cmd {
+    color: var(--dim);
+  }
+  .ps {
+    color: var(--accent);
+  }
+  .screen .ps {
+    margin-right: 4px;
+  }
+  .who {
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--line);
+    font-weight: 700;
+    font-size: 0.9375rem;
+  }
+  .who .u {
+    color: var(--accent);
+  }
+  .who .at {
+    color: var(--dim);
+  }
+  .who .h {
+    color: var(--cyan);
+  }
+  .facts {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .facts > div {
+    display: grid;
+    grid-template-columns: 8ch minmax(0, 1fr);
+    gap: 14px;
+  }
+  .facts dt {
+    color: var(--amber);
+  }
+  .facts dd {
+    color: var(--hi);
+    overflow-wrap: anywhere;
+  }
+  .facts .ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--accent);
+  }
+  .pulse {
+    position: relative;
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes ping {
+    75%,
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+  .build {
+    color: var(--accent);
+  }
+  .learn {
+    color: var(--cyan);
+  }
+  .improve {
+    color: var(--violet);
+  }
+  .sep {
+    color: var(--dim);
+  }
+  .tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 0;
+    color: var(--fg);
+  }
+  .tech span:not(:last-child)::after {
+    content: '·';
+    margin: 0 0.5ch;
+    color: var(--dim);
+  }
+  .swatches {
+    display: flex;
+    gap: 0;
+    margin-top: 6px;
+  }
+  .swatches i {
+    width: 22px;
+    height: 12px;
+  }
+  .swatches i:nth-child(1) {
+    background: var(--accent);
+  }
+  .swatches i:nth-child(2) {
+    background: var(--cyan);
+  }
+  .swatches i:nth-child(3) {
+    background: var(--violet);
+  }
+  .swatches i:nth-child(4) {
+    background: var(--amber);
+  }
+  .swatches i:nth-child(5) {
+    background: var(--coral);
+  }
+  .swatches i:nth-child(6) {
+    background: var(--hi);
+  }
+
+  /* ---------- foot ---------- */
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 24px;
+  }
+  .scroll {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 0.78125rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-decoration: none;
+  }
+  .scroll span {
+    display: inline-block;
+    color: var(--accent);
+    animation: bob 2.2s ease-in-out infinite;
+  }
+  .scroll:hover {
+    color: var(--accent);
+  }
+  @keyframes bob {
+    50% {
+      transform: translateY(4px);
+    }
+  }
+  @media (max-width: 599.98px) {
+    .scroll {
+      display: none;
+    }
+  }
+
+  /* ---------- entrance ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .rise {
+      animation: rise 0.7s var(--ease-out) var(--d, 0s) backwards;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+  }
+
+  /* ---------- small phones ---------- */
+  @media (max-width: 411.98px) {
+    .title {
+      font-size: 1.8125rem;
+    }
+    .lead {
+      font-size: 0.90625rem;
+    }
+    .actions > a {
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+    .screen {
+      padding: 16px;
+      font-size: 0.8125rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse::after,
+    .scroll span {
+      animation: none;
+    }
+    .primary,
+    .secondary,
+    .secondary .arrow {
+      transition: none;
+    }
+  }
+</style>

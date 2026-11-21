@@ -1,0 +1,68 @@
+---
+import Prompt from './Prompt.astro';
+import { site } from '@shared/config/site';
+import { frameText, localizeHref } from '@shared/lib/i18n';
+
+interface Props {
+  path?: string;
+  /** Language of the page; the feed link stays in it. */
+  lang?: string;
+}
+
+const { path, lang } = Astro.props;
+const year = new Date().getFullYear();
+const links = [
+  { label: './now', href: '/now/' },
+  { label: './uses', href: '/uses/' },
+  { label: 'rss.xml', href: '/rss.xml' },
+];
+---
+
+<footer class="site-footer">
+  <div class="inner">
+    <Prompt cmd="exit" path={path}><span class="cursor" aria-hidden="true"></span></Prompt>
+    <nav class="links" aria-label={frameText(lang).moreNav}>
+      {links.map((link) => <a href={localizeHref(link.href, lang)}>{link.label}</a>)}
+    </nav>
+    <p class="dim">© {year} {site.name} — {site.essence.toLowerCase()}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    position: relative;
+    border-top: 1px dashed var(--line);
+  }
+  .inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 24px;
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: 20px 24px 28px;
+    font-size: 0.84375rem;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 20px;
+  }
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--dim);
+    text-decoration: none;
+  }
+  .links a:hover {
+    color: var(--accent);
+  }
+  @media (max-width: 411.98px) {
+    .inner {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+  }
+</style>

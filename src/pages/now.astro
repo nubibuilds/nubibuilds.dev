@@ -1,0 +1,794 @@
+---
+import { site } from '@shared/config/site';
+import BaseLayout from '@app/SiteLayout.astro';
+import Section from '@shared/ui/Section.astro';
+import SectionHeading from '@shared/ui/SectionHeading.astro';
+import Rain from '@shared/ui/Rain.astro';
+import { WORDS } from '@shared/ui/ornaments';
+import { now, type NowState } from '@features/about/data/now';
+
+/* Keep each item's position in the file, for its number and animation order. */
+const items = now.items.map((item, i) => ({ ...item, i }));
+const byState = (state: NowState) => items.filter((item) => item.state === state);
+const running = byState('running');
+const listening = byState('listening');
+const stopped = byState('stopped');
+
+const summary = [
+  { n: running.length, label: 'running', cls: 'running' },
+  { n: listening.length, label: 'listening', cls: 'listening' },
+  { n: stopped.length, label: 'stopped', cls: 'stopped' },
+].filter((s) => s.n > 0);
+
+/* The words the hero types out, one after another: whatever is running (or, failing that, everything). */
+const words = (running.length ? running : items).map((item) => ({ w: item.label, c: item.color }));
+const pad2 = (n: number) => String(n + 1).padStart(2, '0');
+
+/* Bar heights for each card's activity meter: fixed per item so the build is reproducible. */
+const meter = (seed: number) => Array.from({ length: 22 }, (_, k) => 22 + ((seed * 37 + k * 53 + k * k * 7) % 74));
+---
+
+<BaseLayout title="Now" description="What I am focused on right now." windowTitle="~/now">
+  <Section bordered={false}>
+    <Rain slot="ornament" texts={WORDS} count={6} />
+    <div class="stack" style="--gap: 36px">
+      <SectionHeading level={1} cmd="watch now" title="now" note="A snapshot of what has my attention right now." />
+
+      <!-- status: what I'm doing, in one line -->
+      <div class="hero">
+        <div class="chrome" aria-hidden="true">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="title">{site.prompt.user}@{site.prompt.host}: ~/now — watch -n 86400 now</span>
+        </div>
+        <div class="hero-body">
+          <p class="cmd"><span class="ps">$</span> now --status</p>
+          <p class="headline">
+            <span class="sr-only">Currently {words.map((w) => w.w).join(', ')}.</span>
+            <span class="typed" aria-hidden="true" style={`--wc:${words[0].c}`}>
+              <span class="pre">currently</span>{' '}
+              <span class="word" data-type={JSON.stringify(words)}>{words[0].w}</span><span class="cursor"></span>
+            </span>
+          </p>
+
+          <div class="meta">
+            <p class="pills">
+              {
+                summary.map((s) => (
+                  <span class:list={['pill', s.cls]}>
+                    <span class="led" aria-hidden="true" />
+                    <b>{s.n}</b> {s.label}
+                  </span>
+                ))
+              }
+            </p>
+            <p class="when">
+              <span>
+                updated <time datetime={now.updated}>{now.updated}</time><span class="ago" data-ago={now.updated}></span>
+              </span>
+              <span>{site.owner.base}</span>
+              <span data-clock data-tz={site.owner.timezone} hidden>
+                <time class="clock"></time>
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- running: what has my time -->
+      {
+        running.length > 0 && (
+          <section class="group" aria-labelledby="g-running">
+            <h2 class="rule" id="g-running">
+              <span class="ps">$</span> ps --state=running <span class="n">{running.length}</span>
+            </h2>
+            <div class="run-grid" style={`--cols:${Math.min(3, running.length)}`}>
+              {running.map((item) => (
+                <article class="card run reveal" style={`--c:${item.color};--i:${item.i}`}>
+                  <header class="run-head">
+                    <h3 class="plabel">
+                      <span class="led" aria-hidden="true" />
+                      {item.label}
+                    </h3>
+                    <span class="pid" aria-hidden="true">
+                      #{pad2(item.i)}
+                    </span>
+                  </header>
+                  <p class="text">{item.text}</p>
+                  <footer class="run-foot" aria-hidden="true">
+                    <span class="meter">
+                      {meter(item.i + 1).map((h, k) => (
+                        <i style={`--h:${h}%;--k:${k}`} />
+                      ))}
+                    </span>
+                    <span class="state">running</span>
+                  </footer>
+                </article>
+              ))}
+            </div>
+          </section>
+        )
+      }
+
+      <!-- listening: what I'm open to -->
+      {
+        listening.length > 0 && (
+          <section class="group" aria-labelledby="g-listening">
+            <h2 class="rule" id="g-listening">
+              <span class="ps">$</span> netstat --listening <span class="n">{listening.length}</span>
+            </h2>
+            {listening.map((item) => (
+              <article class="card listen reveal" style={`--c:${item.color};--i:${item.i}`}>
+                <div class="radar" aria-hidden="true">
+                  <span class="led" />
+                </div>
+                <div class="listen-main">
+                  <h3 class="plabel">{item.label}</h3>
+                  <p class="sock" aria-hidden="true">
+                    LISTEN <span>*:hello</span>
+                  </p>
+                  <p class="text">{item.text}</p>
+                </div>
+                <a class="cta" href="/#contact">
+                  $ ./contact <span aria-hidden="true">↵</span>
+                </a>
+              </article>
+            ))}
+          </section>
+        )
+      }
+
+      <!-- stopped: what I'm deliberately not doing -->
+      {
+        stopped.length > 0 && (
+          <section class="group" aria-labelledby="g-stopped">
+            <h2 class="rule" id="g-stopped">
+              <span class="ps">$</span> kill -STOP <span class="n">{stopped.length}</span>
+            </h2>
+            {stopped.map((item) => (
+              <article class="card halt reveal" style={`--c:${item.color};--i:${item.i}`}>
+                <h3 class="plabel">
+                  <span class="x" aria-hidden="true">
+                    ✕
+                  </span>
+                  {item.label}
+                </h3>
+                <p class="text">{item.text}</p>
+                <span class="sig" aria-hidden="true">
+                  SIGSTOP
+                </span>
+              </article>
+            ))}
+          </section>
+        )
+      }
+
+      <p class="dim note">
+        A <a href="https://nownownow.com/about">now page</a>: a snapshot of what has my attention, not a timeline. See also <a href="/uses/">./uses</a>.
+      </p>
+    </div>
+  </Section>
+</BaseLayout>
+
+<script>
+  // "(today)", "(3 days ago)": computed in the visitor's browser so it never goes stale.
+  for (const el of document.querySelectorAll<HTMLElement>('[data-ago]')) {
+    const then = new Date(`${el.dataset.ago}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Math.round((today.getTime() - then.getTime()) / 86_400_000);
+    if (Number.isFinite(days) && days >= 0) {
+      el.textContent = days === 0 ? ' (today)' : days === 1 ? ' (yesterday)' : ` (${days} days ago)`;
+    }
+  }
+
+  // Live local time where I am.
+  for (const clock of document.querySelectorAll<HTMLElement>('[data-clock]')) {
+    const out = clock.querySelector('time');
+    if (!out) continue;
+    const format = new Intl.DateTimeFormat('en-GB', {
+      timeZone: clock.dataset.tz,
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+    const tick = () => (out.textContent = `${format.format(new Date())} local`);
+    tick();
+    clock.hidden = false;
+    window.setInterval(tick, 15_000);
+  }
+
+  // Type the running labels out one after another. Without JS, or with reduced motion, the first one stays.
+  const word = document.querySelector<HTMLElement>('[data-type]');
+  if (word && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const list: { w: string; c: string }[] = JSON.parse(word.dataset.type ?? '[]');
+    if (list.length > 1) {
+      let index = 0;
+      const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+      const run = async () => {
+        for (;;) {
+          await wait(2400);
+          const current = list[index].w;
+          for (let n = current.length; n >= 0; n--) {
+            word.textContent = current.slice(0, n);
+            await wait(45);
+          }
+          index = (index + 1) % list.length;
+          const next = list[index];
+          word.parentElement?.style.setProperty('--wc', next.c);
+          await wait(220);
+          for (let n = 1; n <= next.w.length; n++) {
+            word.textContent = next.w.slice(0, n);
+            await wait(85);
+          }
+        }
+      };
+      run();
+    }
+  }
+</script>
+
+<style>
+  /* ---------- hero window ---------- */
+  .hero {
+    border: 1px solid var(--line);
+    background: var(--bg);
+    box-shadow: 0 34px 80px -46px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .chrome {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bar);
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+  .chrome .title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dots {
+    display: flex;
+    flex: none;
+    gap: 6px;
+  }
+  .dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .dots i:nth-child(1) {
+    background: var(--coral);
+  }
+  .dots i:nth-child(2) {
+    background: var(--amber);
+  }
+  .dots i:nth-child(3) {
+    background: var(--accent);
+  }
+
+  .hero-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: clamp(26px, 5vw, 56px) clamp(18px, 5vw, 56px) clamp(22px, 4vw, 40px);
+    overflow: hidden;
+  }
+  /* A dot grid that fades out from the top left, with a glow behind the headline. */
+  .hero-body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(circle, color-mix(in srgb, var(--line) 90%, transparent) 1px, transparent 1.5px) 0 0 / 22px 22px;
+    mask-image: radial-gradient(90% 100% at 0% 0%, #000 10%, transparent 75%);
+    pointer-events: none;
+  }
+  .hero-body::after {
+    content: '';
+    position: absolute;
+    left: -10%;
+    top: 10%;
+    width: 60%;
+    height: 80%;
+    z-index: 0;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 10%, transparent), transparent);
+    pointer-events: none;
+  }
+  .hero-body > * {
+    position: relative;
+    z-index: 1;
+  }
+  .cmd {
+    font-size: 0.875rem;
+    color: var(--dim);
+  }
+  .ps {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .headline {
+    font-size: clamp(1.875rem, 6.4vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    color: var(--hi);
+  }
+  .pre {
+    color: var(--dim);
+    font-weight: 400;
+  }
+  .typed {
+    --wc: var(--accent);
+  }
+  .word {
+    color: var(--wc);
+    /* Glow in the dark theme only: --scan is 0 in light. */
+    text-shadow: 0 0 28px color-mix(in srgb, var(--wc) calc(var(--scan) * 120%), transparent);
+    transition: color 0.2s;
+  }
+  .headline .cursor {
+    width: 0.5em;
+    height: 0.95em;
+    margin-left: 6px;
+    vertical-align: -0.08em;
+    background: var(--wc);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px 28px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--line);
+  }
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 12px 3px 10px;
+    border: 1px solid color-mix(in srgb, var(--pc) 35%, var(--line));
+    background: color-mix(in srgb, var(--pc) 7%, transparent);
+    font-size: 0.78125rem;
+    color: var(--dim);
+  }
+  .pill b {
+    color: var(--pc);
+  }
+  .pill.running {
+    --pc: var(--accent);
+  }
+  .pill.listening {
+    --pc: var(--amber);
+  }
+  .pill.stopped {
+    --pc: var(--coral);
+  }
+  .pill .led {
+    --c: var(--pc);
+    width: 7px;
+    height: 7px;
+  }
+  .when {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 0.8125rem;
+    color: var(--dim);
+  }
+  .when > span + span::before {
+    content: '·';
+    margin-right: 12px;
+    color: var(--line);
+  }
+  .when time {
+    color: var(--fg);
+  }
+  .when .clock {
+    color: var(--amber);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- status lights ---------- */
+  .led {
+    position: relative;
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent);
+  }
+  .pill.listening .led {
+    background: transparent;
+    border: 1.5px solid var(--c);
+    box-shadow: none;
+  }
+  .pill.stopped .led {
+    border-radius: 0;
+    background:
+      linear-gradient(45deg, transparent 40%, var(--c) 40% 60%, transparent 60%),
+      linear-gradient(-45deg, transparent 40%, var(--c) 40% 60%, transparent 60%);
+    box-shadow: none;
+  }
+
+  /* ---------- groups ---------- */
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  /* "$ ps --state=running  3 ─────────" */
+  .rule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.84375rem;
+    font-weight: 400;
+    color: var(--fg);
+  }
+  .rule::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--line), transparent);
+  }
+  .rule .n {
+    padding: 0 7px;
+    border: 1px solid var(--line);
+    font-size: 0.71875rem;
+    line-height: 1.1875rem;
+    color: var(--dim);
+  }
+
+  .card {
+    --c: var(--accent);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(90% 70% at 0% 0%, color-mix(in srgb, var(--c) 8%, transparent), transparent 70%),
+      var(--surface);
+    transition:
+      border-color 0.25s,
+      box-shadow 0.25s;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: linear-gradient(90deg, var(--c), transparent 80%);
+  }
+  .card:hover {
+    border-color: color-mix(in srgb, var(--c) 45%, var(--line));
+    box-shadow: 0 28px 60px -44px color-mix(in srgb, var(--c) 75%, transparent);
+  }
+  .plabel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--c);
+  }
+  .text {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--hi);
+    text-wrap: pretty;
+  }
+
+  /* ---------- running ---------- */
+  .run-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: 20px;
+  }
+  .run {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 22px 22px 18px;
+  }
+  .run-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pid {
+    font-size: 0.75rem;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .run .text {
+    flex: 1;
+  }
+  .run-foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+  }
+  /* A little activity meter, like a CPU graph. */
+  .meter {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 26px;
+    flex: 1;
+    max-width: 150px;
+  }
+  .meter i {
+    flex: 1;
+    height: var(--h);
+    background: var(--c);
+    opacity: 0.55;
+    transform-origin: 50% 100%;
+  }
+  .state {
+    font-size: 0.71875rem;
+    letter-spacing: 0.06em;
+    color: var(--c);
+  }
+
+  /* ---------- listening ---------- */
+  .listen {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 20px 28px;
+    padding: 24px 26px;
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--c) 40%, var(--line));
+  }
+  .radar {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border: 1px solid color-mix(in srgb, var(--c) 30%, var(--line));
+    border-radius: 50%;
+  }
+  .radar::before {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    border: 1px solid color-mix(in srgb, var(--c) 25%, var(--line));
+    border-radius: 50%;
+  }
+  .radar .led {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+    border: 2px solid var(--c);
+  }
+  .listen-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .sock {
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: var(--dim);
+  }
+  .sock span {
+    color: var(--c);
+  }
+  .listen .text {
+    margin-top: 6px;
+    max-width: 70ch;
+  }
+  .listen .cta {
+    border-color: var(--c);
+    color: var(--c);
+    white-space: nowrap;
+  }
+  .listen .cta:hover {
+    background: var(--c);
+    color: var(--on-accent);
+  }
+
+  /* ---------- stopped ---------- */
+  .halt {
+    display: grid;
+    grid-template-columns: 16ch minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 8px 24px;
+    padding: 20px 22px;
+    background:
+      repeating-linear-gradient(-45deg, color-mix(in srgb, var(--c) 5%, transparent) 0 1px, transparent 1px 9px),
+      var(--surface);
+  }
+  .halt::before {
+    opacity: 0.5;
+  }
+  .halt .plabel {
+    color: color-mix(in srgb, var(--c) 80%, var(--dim));
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, var(--c) 60%, transparent);
+  }
+  .x {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 1px solid color-mix(in srgb, var(--c) 45%, var(--line));
+    font-size: 0.625rem;
+    text-decoration: none;
+  }
+  .halt .text {
+    color: var(--dim);
+  }
+  .sig {
+    padding: 0 8px;
+    border: 1px solid color-mix(in srgb, var(--c) 35%, var(--line));
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    line-height: 1.25rem;
+    color: var(--c);
+  }
+
+  .note {
+    font-size: 0.875rem;
+  }
+
+  /* ---------- motion ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .run .led::after,
+    .pill.running .led::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--c);
+      animation: ping 2.2s ease-out calc(var(--i, 0) * 0.35s) infinite;
+    }
+    .meter i {
+      animation: meter 1.3s ease-in-out calc(var(--k) * -0.17s - var(--i) * 0.4s) infinite alternate;
+    }
+    .radar::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border: 1.5px solid var(--c);
+      border-radius: 50%;
+      animation: ripple 2.6s ease-out infinite;
+    }
+    .pill.listening .led {
+      animation: breathe 2.6s ease-in-out infinite;
+    }
+    .hero-body > * {
+      animation: rise 0.5s ease-out both;
+    }
+    .hero-body > :nth-child(2) {
+      animation-delay: 0.08s;
+    }
+    .hero-body > :nth-child(3) {
+      animation-delay: 0.2s;
+    }
+  }
+  @keyframes ping {
+    from {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(3.2);
+    }
+  }
+  @keyframes meter {
+    from {
+      transform: scaleY(0.3);
+    }
+  }
+  @keyframes ripple {
+    from {
+      opacity: 0.8;
+      transform: scale(0.35);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.25);
+    }
+  }
+  @keyframes breathe {
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card,
+    .word {
+      transition: none;
+    }
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 899.98px) {
+    .run-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .meter {
+      max-width: 200px;
+    }
+  }
+  @media (max-width: 719.98px) {
+    .listen {
+      grid-template-columns: auto minmax(0, 1fr);
+      padding: 20px 18px;
+    }
+    .listen .cta {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+    .halt {
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 18px;
+    }
+    .halt .text {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+    .halt .sig {
+      grid-row: 1;
+      grid-column: 2;
+    }
+  }
+  @media (max-width: 479.98px) {
+    .meta {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .when {
+      flex-direction: column;
+    }
+    .when > span + span::before {
+      display: none;
+    }
+    .run {
+      padding: 18px 16px 16px;
+    }
+    .text {
+      font-size: 0.875rem;
+    }
+    .listen {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .radar {
+      width: 44px;
+      height: 44px;
+    }
+    .radar::before {
+      inset: 9px;
+    }
+  }
+</style>

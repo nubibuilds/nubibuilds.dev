@@ -1,0 +1,78 @@
+/* Design tokens. Dark is the default; light follows the system or the toggle. */
+:root {
+  color-scheme: dark;
+  --bg: #0a0e0b;
+  --surface: #0f1511;
+  --bar: #111813;
+  --hover: #141d17;
+  --line: #223027;
+  --fg: #cfdad2;
+  --hi: #e8f1ea;
+  --dim: #8a9d8f;
+  --accent: #62f08f;
+  --amber: #f0b45a;
+  --cyan: #7fd4ff;
+  --coral: #ff8a7a;
+  --violet: #b9a6ff;
+  --on-accent: #0a0e0b;
+  --orn: 0.16;
+  --scan: 0.3;
+  --glow: 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent);
+  /* The same glow as a filter, for text drawn with a gradient (text-shadow would blur it). */
+  --glow-drop: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 30%, transparent));
+
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Box-drawing art needs one consistent system face so columns line up. */
+  --font-ascii: Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  --page: 1120px;
+  --page-narrow: 800px;
+
+  /* Motion: the one easing used for UI movement (fast start, soft landing). */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #eef2ec;
+  --surface: #f6f8f4;
+  --bar: #e5ebe3;
+  --hover: #dde5dc;
+  --line: #c3cfc5;
+  --fg: #26332b;
+  --hi: #0a0e0b;
+  --dim: #516357;
+  --accent: #0b7039;
+  --amber: #8a5700;
+  --cyan: #0a6589;
+  --coral: #b3392b;
+  --violet: #5b43c4;
+  --on-accent: #ffffff;
+  --orn: 0.14;
+  --scan: 0;
+  --glow: none;
+  --glow-drop: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --bg: #eef2ec;
+    --surface: #f6f8f4;
+    --bar: #e5ebe3;
+    --hover: #dde5dc;
+    --line: #c3cfc5;
+    --fg: #26332b;
+    --hi: #0a0e0b;
+    --dim: #516357;
+    --accent: #0b7039;
+    --amber: #8a5700;
+    --cyan: #0a6589;
+    --coral: #b3392b;
+    --violet: #5b43c4;
+    --on-accent: #ffffff;
+    --orn: 0.14;
+    --scan: 0;
+    --glow: none;
+    --glow-drop: none;
+  }
+}

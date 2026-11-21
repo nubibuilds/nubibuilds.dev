@@ -1,0 +1,33 @@
+---
+import Prompt from './Prompt.astro';
+
+interface Props {
+  cmd: string;
+  title: string;
+  note?: string;
+  path?: string;
+  /** Heading level for the title. */
+  level?: 1 | 2;
+}
+
+const { cmd, title, note, path, level = 2 } = Astro.props;
+const Tag = level === 1 ? 'h1' : 'h2';
+---
+
+<div class="heading">
+  <Prompt cmd={cmd} path={path} />
+  <Tag class="h-section">{title}</Tag>
+  {note && <p class="note">{note}</p>}
+</div>
+
+<style>
+  .heading {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .note {
+    font-size: 0.875rem;
+    color: var(--dim);
+  }
+</style>

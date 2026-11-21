@@ -1,0 +1,464 @@
+---
+import { site } from '@shared/config/site';
+
+const stripProtocol = (url: string) => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+const { email, github, linkedin } = site.links;
+const { owner } = site;
+
+const rows = [
+  { label: 'email', value: email, href: email ? `mailto:${email}` : '', placeholder: '[you@email.com]' },
+  { label: 'github', value: stripProtocol(github), href: github, placeholder: 'github.com/[username]' },
+  { label: 'linkedin', value: stripProtocol(linkedin), href: linkedin, placeholder: 'linkedin.com/in/[username]' },
+];
+const { user, host } = site.prompt;
+---
+
+<div class="contact" data-contact>
+  <div class="pitch">
+    <p class="status">
+      <span class="pulse" aria-hidden="true"></span>
+      {owner.status.toLowerCase()}
+    </p>
+    <h3 class="ask">Have an idea worth <span class="accent">building</span>?</h3>
+    <p class="lead-in">Tell me about the problem. I reply {owner.reply.toLowerCase()}.</p>
+
+    {
+      email ? (
+        <div class="mail">
+          <a class="address" href={`mailto:${email}`}>
+            {email}
+          </a>
+          <button type="button" class="copy" data-copy={email}>
+            <span data-copy-label>copy</span>
+          </button>
+          <span class="sr-only" data-copy-status aria-live="polite"></span>
+        </div>
+      ) : (
+        <p class="address todo">[you@email.com]</p>
+      )
+    }
+
+    <p class="where">
+      <span>{owner.base}</span>
+      <span data-clock data-tz={owner.timezone} hidden>
+        local time <time class="clock"></time>
+      </span>
+    </p>
+  </div>
+
+  <div class="shell">
+    <div class="chrome" aria-hidden="true">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span>~/contact — zsh</span>
+    </div>
+    <div class="screen">
+      <p class="line">
+        <span class="ps" aria-hidden="true">$</span> whoami
+      </p>
+      <p class="line out">
+        <span class="hi">{owner.name}</span>, {site.role.toLowerCase()}
+      </p>
+      <p class="line">
+        <span class="ps" aria-hidden="true">$</span> ping {user}@{host}
+      </p>
+      <p class="line out">
+        <span class="ok">reply</span> from {user}@{host}: status=<span class="ok">available</span> time&lt;24h
+      </p>
+      <p class="line">
+        <span class="ps" aria-hidden="true">$</span> ls ./links
+      </p>
+      <ul class="links">
+        {
+          rows.map((row) => (
+            <li class="line">
+              {row.href ? (
+                <a class="link" href={row.href} rel={row.href.startsWith('http') ? 'me noopener' : undefined}>
+                  <span class="key">{row.label}</span>
+                  <span class="value">{row.value}</span>
+                  <span class="arrow" aria-hidden="true">
+                    →
+                  </span>
+                </a>
+              ) : (
+                <div class="link">
+                  <span class="key">{row.label}</span>
+                  <span class="value todo">{row.placeholder}</span>
+                </div>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+      <p class="line" aria-hidden="true">
+        <span class="ps">$</span>
+        <span class="cursor"></span>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+  for (const panel of document.querySelectorAll<HTMLElement>('[data-contact]')) {
+    // Copy the address, and say so to sighted and screen-reader users alike.
+    const button = panel.querySelector<HTMLButtonElement>('[data-copy]');
+    const label = panel.querySelector('[data-copy-label]');
+    const status = panel.querySelector('[data-copy-status]');
+    let reset: number | undefined;
+    button?.addEventListener('click', async () => {
+      let ok = true;
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+      } catch {
+        ok = false;
+      }
+      if (label) label.textContent = ok ? 'copied ✓' : 'press ⌘C';
+      if (status) status.textContent = ok ? 'Email address copied' : 'Copy failed';
+      button.classList.toggle('done', ok);
+      clearTimeout(reset);
+      reset = window.setTimeout(() => {
+        if (label) label.textContent = 'copy';
+        button.classList.remove('done');
+      }, 2200);
+    });
+
+    // Live local time where I am, so visitors can tell whether I'm likely awake.
+    const clock = panel.querySelector<HTMLElement>('[data-clock]');
+    const out = clock?.querySelector('time');
+    if (clock && out) {
+      const format = new Intl.DateTimeFormat('en-GB', {
+        timeZone: clock.dataset.tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      });
+      const tick = () => (out.textContent = format.format(new Date()));
+      tick();
+      clock.hidden = false;
+      window.setInterval(tick, 15_000);
+    }
+
+    // Play the terminal session line by line the first time it scrolls into view.
+    const term = panel.querySelector<HTMLElement>('.shell');
+    if (term && !matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+      term.classList.add('armed');
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            term.classList.add('play');
+            io.disconnect();
+          }
+        },
+        { threshold: 0.2 },
+      );
+      io.observe(term);
+    }
+  }
+</script>
+
+<style>
+  .contact {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
+    align-items: center;
+    gap: 40px 64px;
+  }
+
+  /* ---------- left: the ask ---------- */
+  .pitch {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    min-width: 0;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 12px 4px 10px;
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+    font-size: 0.78125rem;
+    letter-spacing: 0.03em;
+    color: var(--accent);
+  }
+  .pulse {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .ask {
+    font-size: clamp(1.625rem, 3.6vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--hi);
+    text-wrap: balance;
+  }
+  .accent {
+    color: var(--accent);
+  }
+  .lead-in {
+    max-width: 44ch;
+    color: var(--dim);
+  }
+
+  .mail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    margin-top: 8px;
+  }
+  .address {
+    font-size: clamp(1.1875rem, 2.6vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--hi);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    /* Underline that draws itself on hover. */
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 100% / 0% 2px;
+    padding-bottom: 4px;
+    transition:
+      background-size 0.4s var(--ease-out),
+      color 0.25s;
+  }
+  .address:hover {
+    color: var(--accent);
+    background-size: 100% 2px;
+  }
+  .copy {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--dim);
+    font: inherit;
+    font-size: 0.78125rem;
+    cursor: pointer;
+    transition:
+      border-color 0.2s,
+      color 0.2s,
+      background 0.2s;
+  }
+  .copy:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .copy.done {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent);
+  }
+  .where {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    font-size: 0.8125rem;
+    color: var(--dim);
+  }
+  .where > span + span::before {
+    content: '·';
+    margin-right: 10px;
+    color: var(--line);
+  }
+  .clock {
+    color: var(--amber);
+    font-variant-numeric: tabular-nums;
+  }
+  .todo {
+    color: var(--amber);
+  }
+
+  /* ---------- right: a terminal session ---------- */
+  .shell {
+    min-width: 0;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    box-shadow: 0 30px 70px -40px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .chrome {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bar);
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .dots i:nth-child(1) {
+    background: var(--coral);
+  }
+  .dots i:nth-child(2) {
+    background: var(--amber);
+  }
+  .dots i:nth-child(3) {
+    background: var(--accent);
+  }
+  .screen {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 20px 20px 22px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .ps {
+    color: var(--accent);
+  }
+  .out {
+    margin-bottom: 8px;
+    color: var(--dim);
+  }
+  .hi {
+    color: var(--hi);
+  }
+  .ok {
+    color: var(--accent);
+  }
+
+  .links {
+    display: flex;
+    flex-direction: column;
+    margin: 0 -10px 8px;
+    padding: 0;
+    list-style: none;
+  }
+  .link {
+    display: grid;
+    grid-template-columns: 9ch minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 4px 10px;
+    color: var(--fg);
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .key {
+    color: var(--cyan);
+  }
+  .value {
+    overflow-wrap: anywhere;
+  }
+  .arrow {
+    color: var(--dim);
+    transition:
+      transform 0.2s,
+      color 0.2s;
+  }
+  a.link:hover {
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+  }
+  a.link:hover .key,
+  a.link:hover .arrow {
+    color: var(--accent);
+  }
+  a.link:hover .value {
+    color: var(--hi);
+  }
+  a.link:hover .arrow {
+    transform: translateX(4px);
+  }
+
+  /* Session playback: only once the script arms it, so without JS everything is simply shown. */
+  .shell.armed .line {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  .shell.play .line {
+    animation: line-in 0.35s ease-out forwards;
+  }
+  .shell.play .screen > :nth-child(1) { animation-delay: 0.1s; }
+  .shell.play .screen > :nth-child(2) { animation-delay: 0.45s; }
+  .shell.play .screen > :nth-child(3) { animation-delay: 0.85s; }
+  .shell.play .screen > :nth-child(4) { animation-delay: 1.2s; }
+  .shell.play .screen > :nth-child(5) { animation-delay: 1.6s; }
+  .shell.play .links > :nth-child(1) { animation-delay: 1.95s; }
+  .shell.play .links > :nth-child(2) { animation-delay: 2.1s; }
+  .shell.play .links > :nth-child(3) { animation-delay: 2.25s; }
+  .shell.play .screen > :nth-child(7) { animation-delay: 2.5s; }
+  @keyframes line-in {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .pulse::after {
+      animation: pulse 2s ease-out infinite;
+    }
+  }
+  @keyframes pulse {
+    from {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(3);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .address,
+    .copy,
+    .link,
+    .arrow {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 479.98px) {
+    .where {
+      flex-direction: column;
+    }
+    .where > span + span::before {
+      display: none;
+    }
+    .screen {
+      padding: 16px 14px 18px;
+      font-size: 0.8125rem;
+    }
+    .links {
+      margin-inline: -8px;
+    }
+    /* Label above value, so long addresses never break mid-word. */
+    .link {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0 12px;
+      padding: 6px 8px;
+    }
+    .key {
+      grid-column: 1;
+      font-size: 0.75rem;
+    }
+    .value {
+      grid-column: 1;
+    }
+    .arrow {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+  }
+</style>

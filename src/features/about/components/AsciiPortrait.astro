@@ -1,0 +1,92 @@
+---
+/**
+ * The portrait on the About page, drawn with characters.
+ *
+ * Two layers make the picture: the characters (portrait.txt: denser glyphs where the photo is
+ * darker) and a small tone image that colours them through `background-clip: text`, one per
+ * theme. All three files are generated from a photo by scripts/ascii-portrait.py; the photo
+ * itself is never published.
+ */
+import art from '../assets/portrait.txt?raw';
+import dark from '../assets/portrait-dark.webp';
+import light from '../assets/portrait-light.webp';
+
+interface Props {
+  /** Whose portrait it is, for the accessible name. */
+  name: string;
+}
+
+const { name } = Astro.props;
+
+/** Pixels per character in the tone images (PIXELS_PER_CELL in the script). */
+const PIXELS_PER_CELL = 3;
+const cols = Math.round(dark.width / PIXELS_PER_CELL);
+// Every line as wide as the picture, so the tone image lines up with the characters.
+const lines = art.replace(/\s+$/, '').split('\n');
+const text = lines.map((line) => line.padEnd(cols)).join('\n');
+---
+
+<div class="portrait" role="img" aria-label={`ASCII portrait of ${name}`} style={`--cols:${cols};--rows:${lines.length};--tone-dark:url(${dark.src});--tone-light:url(${light.src})`}>
+  <pre aria-hidden="true">{text}</pre>
+</div>
+
+<style>
+  .portrait {
+    container-type: inline-size;
+    /* Spacing comes from the frame around it (ProfileCard). */
+    margin: 0;
+    /* Reserve the picture's height before the font loads: a cell is 0.6em wide and 1em tall. */
+    aspect-ratio: calc(var(--cols) * 0.6) / var(--rows);
+    overflow: hidden;
+    user-select: none;
+  }
+  pre {
+    width: max-content;
+    margin: 0;
+    /* Scale the type so the line length always equals the card's width. */
+    font-family: var(--font-mono);
+    font-size: calc(100cqw / (var(--cols) * 0.6));
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    /* Without background-clip support the characters are simply drawn in the accent colour. */
+    color: var(--accent);
+  }
+  /*
+   * Preferred sizing: set the type at 10px and scale the whole block down to the card's width.
+   * Browsers with a minimum font size would otherwise enlarge the tiny type and crop the picture.
+   * tan(atan2(a, b)) is the unitless ratio a / b of two lengths.
+   */
+  @supports (transform: scale(tan(atan2(1px, 1px)))) {
+    pre {
+      font-size: 10px;
+      transform: scale(tan(atan2(100cqw, calc(var(--cols) * 6px))));
+      transform-origin: 0 0;
+    }
+  }
+  @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    pre {
+      color: transparent;
+      background-image: var(--tone-dark);
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    :global(:root[data-theme='light']) pre {
+      background-image: var(--tone-light);
+    }
+    @media (prefers-color-scheme: light) {
+      :global(:root:not([data-theme])) pre {
+        background-image: var(--tone-light);
+      }
+    }
+  }
+  /* High-contrast modes drop background images: fall back to plain text colour. */
+  @media (forced-colors: active) {
+    pre {
+      color: CanvasText;
+      background: none;
+    }
+  }
+</style>

@@ -1,0 +1,65 @@
+---
+/**
+ * App layer: the layout every page uses. It wraps the shared BaseLayout and adds the
+ * site-wide features that need data from several features at once (terminal, search).
+ * Features never import each other; this is where they are wired together.
+ */
+import type { ComponentProps } from 'astro/types';
+import BaseLayout from '@shared/layouts/BaseLayout.astro';
+import { site } from '@shared/config/site';
+import SearchScript from '@features/search/components/SearchScript.astro';
+import Terminal from '@features/terminal/components/Terminal.astro';
+import type { TerminalData } from '@features/terminal/lib/types';
+import { getAllWork, workLang, workSlug, workUrl } from '@features/work/lib/queries';
+import { formatDate, getAllPosts, postLang, postSlug, postUrl } from '@features/writing/lib/queries';
+
+type Props = ComponentProps<typeof BaseLayout>;
+
+const [work, posts] = await Promise.all([getAllWork(), getAllPosts()]);
+const { email, github, linkedin } = site.links;
+
+const terminal: TerminalData = {
+  site: {
+    name: site.name,
+    role: site.role,
+    tagline: site.tagline,
+    motto: site.motto,
+    links: [
+      { label: 'email', href: email ? `mailto:${email}` : '', text: email },
+      { label: 'github', href: github, text: github },
+      { label: 'linkedin', href: linkedin, text: linkedin },
+    ].filter((link) => link.href),
+  },
+  pages: [
+    { name: 'work', url: '/work/', about: 'case studies', dir: true },
+    { name: 'writing', url: '/writing/', about: 'articles', dir: true },
+    { name: 'about', url: '/about/', about: 'who I am and how I work' },
+    { name: 'now', url: '/now/', about: 'what I am focused on right now' },
+    { name: 'uses', url: '/uses/', about: 'tools I use' },
+    { name: 'contact', url: '/#contact', about: 'get in touch' },
+  ],
+  work: work.map((entry) => ({
+    slug: workSlug(entry),
+    title: entry.data.title,
+    url: workUrl(entry),
+    summary: entry.data.summary,
+    lang: workLang(entry),
+  })),
+  writing: posts.map((post) => ({
+    slug: postSlug(post),
+    title: post.data.title,
+    url: postUrl(post),
+    summary: post.data.summary,
+    lang: postLang(post),
+    date: formatDate(post.data.date),
+  })),
+};
+---
+
+<BaseLayout {...Astro.props}>
+  <slot />
+  <Fragment slot="overlays">
+    <SearchScript />
+    <Terminal data={terminal} lang={Astro.props.lang} />
+  </Fragment>
+</BaseLayout>

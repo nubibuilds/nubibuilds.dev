@@ -1,0 +1,339 @@
+---
+/**
+ * The journey as a `git log --graph`: a sticky aside (heading + repo stats) beside a
+ * column of commits. Each commit gets a stable short hash, a big outlined year, and a
+ * rail segment that blends from its colour into the next commit's.
+ * Pass the section heading in the "heading" slot.
+ */
+import { journey } from '../data/about';
+
+/** FNV-1a → 7 hex chars, so each entry keeps the same "hash" between builds. */
+const hash = (s: string) => {
+  let h = 0x811c9dc5;
+  for (const ch of s) h = Math.imul(h ^ ch.codePointAt(0)!, 0x01000193);
+  return (h >>> 0).toString(16).padStart(8, '0').slice(0, 7);
+};
+
+const years = journey.flatMap((j) => j.year.match(/\d{4}/g)?.map(Number) ?? []);
+const since = Math.min(...years);
+const latest = Math.max(...years);
+
+const stats = [
+  { label: 'commits', value: String(journey.length) },
+  { label: 'since', value: String(since) },
+  { label: 'years', value: `${latest - since}+` },
+];
+
+const last = journey.length - 1;
+const commits = journey.map((item, i) => ({
+  ...item,
+  hash: hash(item.year + item.text),
+  next: journey[i + 1]?.color ?? item.color,
+  head: i === 0,
+  root: i === last,
+}));
+---
+
+<div class="journey">
+  <div class="aside">
+    <slot name="heading" />
+    <dl class="stats">
+      {
+        stats.map((s) => (
+          <div>
+            <dt>{s.label}</dt>
+            <dd>{s.value}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+
+  <ol class="log">
+    {
+      commits.map((c) => (
+        <li style={`--c:${c.color};--n:${c.next}`} class:list={{ head: c.head, root: c.root }}>
+          <span class="node" aria-hidden="true" />
+          <div class="commit">
+            <p class="meta" aria-hidden="true">
+              <span class="hash">{c.hash}</span>
+              {c.head && (
+                <span class="ref">
+                  HEAD <span class="arrow">-&gt;</span> main
+                </span>
+              )}
+              {c.root && <span class="ref quiet">root-commit</span>}
+            </p>
+            <h3 class="year">{c.year}</h3>
+            <p class="text">{c.text}</p>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</div>
+
+<style>
+  .journey {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
+  @media (min-width: 880px) {
+    .journey {
+      grid-template-columns: minmax(240px, 0.75fr) minmax(0, 2fr);
+      gap: 56px;
+    }
+    .aside {
+      position: sticky;
+      top: 32px;
+      align-self: start;
+    }
+  }
+
+  /* ---------- aside ---------- */
+  .aside {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .stats > div {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 4px;
+    padding: 14px 22px 14px 0;
+  }
+  .stats > div + div {
+    padding-left: 22px;
+    border-left: 1px dashed var(--line);
+  }
+  .stats dt {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .stats dd {
+    font-size: 1.625rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--hi);
+  }
+
+  /* ---------- log ---------- */
+  .log {
+    --gap: 14px;
+    --node: 15px;
+    display: grid;
+    gap: var(--gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    position: relative;
+    padding-left: 40px;
+  }
+
+  /* Rail: from under this node to the next one, blending this colour into the next. */
+  li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--node) / 2 - 1px);
+    top: calc(22px + var(--node) + 4px);
+    bottom: calc(-1 * var(--gap) - 18px);
+    width: 2px;
+    background: linear-gradient(
+      color-mix(in srgb, var(--c) 70%, transparent),
+      color-mix(in srgb, var(--n) 70%, transparent)
+    );
+    transform-origin: top;
+  }
+
+  .node {
+    position: absolute;
+    left: 0;
+    top: 22px;
+    width: var(--node);
+    height: var(--node);
+    border: 2px solid var(--c);
+    border-radius: 50%;
+    background: var(--bg);
+    transition:
+      transform 0.25s,
+      box-shadow 0.25s;
+  }
+  .root .node {
+    box-shadow: inset 0 0 0 2px var(--bg), inset 0 0 0 8px var(--c);
+  }
+  .head .node {
+    background: var(--c);
+    box-shadow:
+      0 0 0 5px color-mix(in srgb, var(--c) 18%, transparent),
+      var(--glow);
+  }
+  /* A slow ripple off HEAD: the one commit that is still moving. */
+  .head .node::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border: 1px solid var(--c);
+    border-radius: 50%;
+    opacity: 0;
+  }
+
+  .commit {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 22px 22px;
+    border: 1px solid transparent;
+    transition:
+      border-color 0.3s,
+      background-color 0.3s;
+  }
+  li:hover .commit,
+  .head .commit {
+    border-color: color-mix(in srgb, var(--c) 28%, var(--line));
+    background:
+      radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--c) 9%, transparent), transparent 60%),
+      color-mix(in srgb, var(--surface) 85%, transparent);
+  }
+  li:hover .node {
+    transform: scale(1.2);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 0.75rem;
+    line-height: 1.125rem;
+    letter-spacing: 0.04em;
+  }
+  .hash {
+    color: var(--amber);
+  }
+  .ref {
+    padding: 0 7px;
+    border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+    background: color-mix(in srgb, var(--c) 10%, transparent);
+    font-size: 0.6875rem;
+    color: var(--c);
+  }
+  .ref .arrow {
+    color: var(--dim);
+  }
+  .ref.quiet {
+    border-color: var(--line);
+    background: none;
+    color: var(--dim);
+  }
+
+  .year {
+    margin-top: 2px;
+    font-size: clamp(2rem, 4.6vw, 2.875rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--c);
+    transition:
+      color 0.3s,
+      text-shadow 0.3s;
+  }
+  .head .year,
+  li:hover .year {
+    color: var(--c);
+    text-shadow: 0 0 26px color-mix(in srgb, var(--c) 40%, transparent);
+  }
+
+  .text {
+    max-width: 58ch;
+    margin-top: 4px;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--fg);
+    text-wrap: pretty;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .head .node::after {
+      animation: ripple 2.6s ease-out infinite;
+    }
+    /* Commits rise in and the rail draws itself as you scroll (where supported). */
+    @supports (animation-timeline: view()) {
+      li {
+        animation: rise linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 40%;
+      }
+      li:not(:last-child)::after {
+        animation: draw linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 35%;
+      }
+    }
+  }
+  @keyframes ripple {
+    0% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2.6);
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  @keyframes draw {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .node,
+    .commit,
+    .year {
+      transition: none;
+    }
+  }
+  @media (max-width: 411.98px) {
+    .log {
+      --node: 13px;
+    }
+    li {
+      padding-left: 26px;
+    }
+    .commit {
+      padding: 14px 14px 18px;
+    }
+    .stats > div {
+      padding-right: 16px;
+    }
+    .stats > div + div {
+      padding-left: 16px;
+    }
+    .stats dd {
+      font-size: 1.375rem;
+    }
+    .text {
+      font-size: 0.875rem;
+    }
+  }
+</style>

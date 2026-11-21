@@ -1,0 +1,901 @@
+---
+/**
+ * Closing call to action: a framed panel with the availability status, the ask, the
+ * actions, and a four-step pipeline drawn in the same language as the loop diagram.
+ * A comet runs idea → plan → build → ship, taking on each step's colour and painting
+ * the track behind it; every step flares and rings as it lands. On "ship" the comet
+ * hits, the track and the frame corners flash, and the log below reports the release,
+ * whose version goes up every run. With reduced motion everything stays still.
+ */
+import { site } from '@shared/config/site';
+
+const { owner, links } = site;
+
+const steps = [
+  { label: 'idea', text: 'You bring the problem.', color: 'var(--amber)', log: '› idea received' },
+  { label: 'plan', text: 'We scope it together.', color: 'var(--cyan)', log: '› scoping the plan…' },
+  { label: 'build', text: 'Shipped in small steps.', color: 'var(--violet)', log: '› building in small steps…' },
+  { label: 'ship', text: 'Then it keeps improving.', color: 'var(--accent)', log: '✓ shipped' },
+];
+const last = steps.length - 1;
+
+/*
+ * One run, as percentages of the cycle: the comet sets off from the first step, lands on
+ * the last, the release flashes, then the lights fade and it starts over. Every step's
+ * keyframes are generated from the moment the comet reaches it, so lights, rings, track
+ * and log stay in sync with the comet whatever the number of steps.
+ */
+const CYCLE = 9; // seconds
+const T = { ignite: 4, arrive: 64, fadeFrom: 86, fadeTo: 94 };
+const reach = (i: number) => T.ignite + ((T.arrive - T.ignite) * i) / last;
+const pc = (n: number) => `${+n.toFixed(2)}%`;
+const shadow = (px: number, color: string, alpha: number) =>
+  `0 0 ${px}px color-mix(in srgb, ${color} ${alpha}%, transparent)`;
+
+const NODE_OFF = `background-color: var(--bg); border-color: color-mix(in srgb, var(--c) 45%, var(--line)); box-shadow: ${shadow(0, 'var(--c)', 0)}; scale: 1;`;
+const NODE_ON = (px: number, alpha: number, scale = 1) =>
+  `background-color: var(--c); border-color: var(--c); box-shadow: ${shadow(px, 'var(--c)', alpha)}; scale: ${scale};`;
+
+const ring = (name: string, from: number, span: number, size: number, alpha: number) =>
+  `@keyframes ${name} { 0%, ${pc(from - 0.1)} { opacity: 0; scale: 1; } ${pc(from)} { opacity: ${alpha}; scale: 1; } ${pc(from + span)}, 100% { opacity: 0; scale: ${size}; } }`;
+
+const frames: string[] = [
+  `@property --p { syntax: '<number>'; inherits: true; initial-value: 0; }`,
+  `@property --g { syntax: '<number>'; inherits: false; initial-value: 0; }`,
+  // How far the comet has travelled along the track, 0 → 1.
+  `@keyframes cta-p { 0%, ${pc(T.ignite)} { --p: 0; } ${pc(T.arrive)}, 100% { --p: 1; } }`,
+  // The comet blends from one step's colour into the next, then bursts on the last step.
+  `@keyframes cta-comet {
+    0% { opacity: 0; scale: 0.4; color: ${steps[0].color}; }
+    ${pc(T.ignite)} { opacity: 1; scale: 1; }
+    ${steps.map((s, i) => `${pc(reach(i))} { color: ${s.color}; }`).join(' ')}
+    ${pc(T.arrive)} { opacity: 1; scale: 1; }
+    ${pc(T.arrive + 4)}, 100% { opacity: 0; scale: 2.6; color: ${steps[last].color}; }
+  }`,
+  `@keyframes cta-tail { 0%, ${pc(T.ignite)} { width: 0px; } ${pc(T.ignite + 10)}, ${pc(T.arrive)} { width: 96px; } ${pc(T.arrive + 3)}, 100% { width: 0px; } }`,
+  // Frame corners kick outwards when the release lands.
+  `@keyframes cta-corner {
+    0%, ${pc(T.arrive)} { translate: 0 0; filter: drop-shadow(${shadow(0, 'var(--accent)', 0)}); }
+    ${pc(T.arrive + 3)} { translate: calc(var(--dx) * 6px) calc(var(--dy) * 6px); filter: drop-shadow(${shadow(8, 'var(--accent)', 90)}); }
+    ${pc(T.arrive + 16)}, 100% { translate: 0 0; filter: drop-shadow(${shadow(0, 'var(--accent)', 0)}); }
+  }`,
+  // "Waiting" shows between runs, wrapping around the end of the cycle.
+  `@keyframes cta-log-w {
+    0%, ${pc(T.ignite - 1)} { opacity: 1; translate: 0 0; }
+    ${pc(T.ignite)} { opacity: 0; translate: 0 -6px; }
+    ${pc(T.fadeTo)} { opacity: 0; translate: 0 6px; }
+    ${pc(T.fadeTo + 2)}, 100% { opacity: 1; translate: 0 0; }
+  }`,
+];
+
+steps.forEach((_, i) => {
+  const r = reach(i);
+  const end = i === last;
+  frames.push(
+    `@keyframes cta-node-${i} {
+      0%, ${pc(r - 0.4)} { ${NODE_OFF} }
+      ${pc(r)} { ${NODE_ON(end ? 32 : 18, 80, end ? 2 : 1.5)} }
+      ${pc(r + (end ? 10 : 6))}, ${pc(T.fadeFrom)} { ${NODE_ON(7, 45)} }
+      ${pc(T.fadeTo)}, 100% { ${NODE_OFF} }
+    }`,
+    ring(`cta-ring-${i}`, r, end ? 16 : 12, end ? 5.5 : 3.2, 0.9),
+    `@keyframes cta-step-${i} { 0%, ${pc(r - 0.4)} { color: var(--hi); } ${pc(r)}, ${pc(T.fadeFrom)} { color: var(--c); } ${pc(T.fadeTo)}, 100% { color: var(--hi); } }`,
+  );
+  // Log line for this step: on from its arrival until the next step's (the last one holds until the fade).
+  const stop = end ? T.fadeTo : reach(i + 1);
+  frames.push(
+    `@keyframes cta-log-${i} {
+      0%, ${pc(r)} { opacity: 0; translate: 0 6px; }
+      ${pc(r + 1.5)}, ${pc(stop - 1)} { opacity: 1; translate: 0 0; }
+      ${pc(stop)}, 100% { opacity: 0; translate: 0 -6px; }
+    }`,
+  );
+  // Track segment to the next step: painted as the comet crosses it, then flashes on release.
+  if (!end) {
+    frames.push(`@keyframes cta-seg-${i} {
+      0%, ${pc(r)} { --g: 0; opacity: 1; box-shadow: ${shadow(0, 'var(--accent)', 0)}; }
+      ${pc(reach(i + 1))}, ${pc(T.arrive)} { --g: 1; box-shadow: ${shadow(0, 'var(--accent)', 0)}; }
+      ${pc(T.arrive + 3)} { box-shadow: ${shadow(14, 'var(--accent)', 85)}; }
+      ${pc(T.arrive + 14)}, ${pc(T.fadeFrom)} { --g: 1; opacity: 1; box-shadow: ${shadow(0, 'var(--accent)', 0)}; }
+      ${pc(T.fadeTo)}, 100% { --g: 1; opacity: 0; }
+    }`);
+  }
+});
+// A second, wider ring off the last step, just behind the first.
+frames.push(ring('cta-ring-last', T.arrive + 3, 20, 9, 0.6));
+
+const run = `${CYCLE}s linear infinite`;
+const li = (i: number) => `[data-cta] .steps > li:nth-child(${i + 1})`;
+const motion = `${frames.join('\n')}
+@media (prefers-reduced-motion: no-preference) {
+  [data-cta] .pipeline { animation: cta-p ${run}; }
+  [data-cta] .comet { animation: cta-comet ${run}; }
+  [data-cta] .tail { animation: cta-tail ${run}; }
+  [data-cta] .corner { animation: cta-corner ${run}; }
+  [data-cta] .log-w { animation: cta-log-w ${run}; }
+  ${steps
+    .map(
+      (_, i) => `${li(i)} .node { animation: cta-node-${i} ${run}; }
+  ${li(i)} .node::after { animation: cta-ring-${i} ${run}; }
+  ${li(i)} .step { animation: cta-step-${i} ${run}; }
+  [data-cta] .log-${i} { animation: cta-log-${i} ${run}; }
+  ${i < last ? `[data-cta] .seg-${i} { animation: cta-seg-${i} ${run}; }` : ''}`,
+    )
+    .join('\n  ')}
+  ${li(last)} .node::before { animation: cta-ring-last ${run}; }
+}`;
+
+const corners = [
+  { c: 'tl', dx: -1, dy: -1 },
+  { c: 'tr', dx: 1, dy: -1 },
+  { c: 'bl', dx: -1, dy: 1 },
+  { c: 'br', dx: 1, dy: 1 },
+];
+const x = (i: number) => `${(((i + 0.5) / steps.length) * 100).toFixed(3)}%`;
+---
+
+<style is:inline set:html={motion}></style>
+
+<div class="finale" data-cta style={`--steps:${steps.length}`}>
+  {corners.map((k) => <span class={`corner ${k.c}`} style={`--dx:${k.dx};--dy:${k.dy}`} aria-hidden="true" />)}
+
+  <div class="pitch">
+    <p class="status">
+      <span class="pulse" aria-hidden="true"></span>
+      {owner.status.toLowerCase()}
+    </p>
+    <h2 class="ask">
+      Have an idea worth <span class="accent">building</span>?<span class="caret" aria-hidden="true"></span>
+    </h2>
+    <p class="sub">Tell me about the problem. I reply {owner.reply.toLowerCase()}.</p>
+
+    <div class="actions">
+      <a class="cta go" href="/#contact">$ ./contact <span aria-hidden="true">↵</span></a>
+      <a class="ghost" href="/work/">ls ./work</a>
+    </div>
+    {
+      links.email && (
+        <div class="mail" data-mail>
+          <p class="mail-or">or write to</p>
+          <div class="mail-box">
+            <span class="mail-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 16">
+                <rect x="1.5" y="1.5" width="17" height="13" rx="1.5" />
+                <path d="m2 2.5 8 6.5 8-6.5" />
+              </svg>
+            </span>
+            <a class="mail-address" href={`mailto:${links.email}`}>
+              {links.email}
+            </a>
+            <button type="button" class="mail-copy" data-mail-copy={links.email}>
+              <svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="5.5" y="5.5" width="9" height="9" rx="1.5" />
+                <path d="M10.5 5.5v-3a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h3" />
+              </svg>
+              <svg class="i-done" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="m3 8.5 3.2 3L13 4.5" />
+              </svg>
+              <span class="mail-copy-text" data-mail-label>copy</span>
+              <span class="sr-only"> email address</span>
+            </button>
+          </div>
+          <span class="sr-only" data-mail-status aria-live="polite"></span>
+        </div>
+      )
+    }
+  </div>
+
+  <div class="pipeline" data-pipeline>
+    <span class="track" aria-hidden="true"></span>
+    {
+      steps.slice(0, -1).map((s, i) => (
+        <span
+          class={`seg seg-${i}`}
+          aria-hidden="true"
+          style={`--x:${x(i)};--w:${(100 / steps.length).toFixed(3)}%;--ca:${s.color};--cb:${steps[i + 1].color};--a:var(--y${i});--b:var(--y${i + 1})`}
+        />
+      ))
+    }
+
+    <ol class="steps" aria-label="How a project runs">
+      {
+        steps.map((s, i) => (
+          <li style={`--c:${s.color}`}>
+            <span class="node" aria-hidden="true" />
+            <span class="num" aria-hidden="true">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <span class="step">{s.label}</span>
+            <span class="text">{s.text}</span>
+          </li>
+        ))
+      }
+    </ol>
+
+    {/* Above the steps, so the comet passes over the nodes. */}
+    <span class="flight" aria-hidden="true">
+      <span class="comet"><span class="tail"></span><span class="head"></span></span>
+    </span>
+
+    <p class="log" aria-hidden="true">
+      <span class="log-w">waiting for an idea<span class="blink">_</span></span>
+      {
+        steps.map((s, i) => (
+          <span class={`log-${i}`} style={`--c:${s.color}`}>
+            {s.log}
+            {i === last && (
+              <>
+                {' '}v1.0.<span data-ship-n>1</span>
+              </>
+            )}
+          </span>
+        ))
+      }
+    </p>
+  </div>
+</div>
+
+<script>
+  for (const cta of document.querySelectorAll<HTMLElement>('[data-cta]')) {
+    const pipe = cta.querySelector<HTMLElement>('[data-pipeline]');
+    const nodes = [...(pipe?.querySelectorAll<HTMLElement>('.node') ?? [])];
+    /*
+     * On phones the pipeline runs down the left and steps vary in height, so measure each
+     * node's centre and hand it to the CSS as the track (--y0…--yN, --ylast).
+     */
+    if (pipe && nodes.length) {
+      const measure = () => {
+        const top = pipe.getBoundingClientRect().top;
+        nodes.forEach((node, i) => {
+          const r = node.getBoundingClientRect();
+          const y = `${r.top + r.height / 2 - top}px`;
+          pipe.style.setProperty(`--y${i}`, y);
+          if (i === nodes.length - 1) pipe.style.setProperty('--ylast', y);
+        });
+        pipe.classList.add('measured');
+      };
+      new ResizeObserver(measure).observe(pipe);
+    }
+
+    // Every finished run is a new release. Only fires while the comet animates.
+    const n = cta.querySelector('[data-ship-n]');
+    const comet = cta.querySelector('.comet');
+    let version = 1;
+    comet?.addEventListener('animationiteration', (e) => {
+      if (e.target === comet && n) n.textContent = String(++version);
+    });
+
+    // Copy the address, and say so to sighted and screen-reader users alike.
+    const mail = cta.querySelector<HTMLElement>('[data-mail]');
+    const copy = mail?.querySelector<HTMLButtonElement>('[data-mail-copy]');
+    const label = mail?.querySelector('[data-mail-label]');
+    const status = mail?.querySelector('[data-mail-status]');
+    let reset: number | undefined;
+    copy?.addEventListener('click', async () => {
+      const text = copy.dataset.mailCopy ?? '';
+      let ok = true;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // No async clipboard (an insecure origin, an old browser): copy from a hidden field.
+        const field = Object.assign(document.createElement('textarea'), { value: text, readOnly: true });
+        field.style.cssText = 'position:fixed;opacity:0';
+        document.body.append(field);
+        field.select();
+        ok = document.execCommand('copy');
+        field.remove();
+      }
+      if (label) label.textContent = ok ? 'copied' : 'failed';
+      if (status) status.textContent = ok ? 'Email address copied' : 'Copy failed';
+      mail?.classList.toggle('done', ok);
+      clearTimeout(reset);
+      reset = window.setTimeout(() => {
+        if (label) label.textContent = 'copy';
+        mail?.classList.remove('done');
+      }, 2200);
+    });
+  }
+</script>
+
+<style>
+  .finale {
+    --pad: clamp(28px, 6vw, 64px);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(40px, 6vw, 56px);
+    padding: var(--pad) clamp(18px, 5vw, 56px);
+    isolation: isolate;
+    text-align: center;
+  }
+  /* The page colour hides the ornament text behind; a soft glow and dot grid fade out from the middle. */
+  .finale::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(60% 70% at 50% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 70%),
+      radial-gradient(color-mix(in srgb, var(--dim) 22%, transparent) 1px, transparent 1.5px) 0 0 / 18px 18px,
+      var(--bg);
+  }
+
+  /* Viewfinder brackets on the four corners. */
+  .corner {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 0 solid var(--accent);
+  }
+  .tl {
+    top: -1px;
+    left: -1px;
+    border-top-width: 2px;
+    border-left-width: 2px;
+  }
+  .tr {
+    top: -1px;
+    right: -1px;
+    border-top-width: 2px;
+    border-right-width: 2px;
+  }
+  .bl {
+    bottom: -1px;
+    left: -1px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+  }
+  .br {
+    right: -1px;
+    bottom: -1px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+  }
+
+  /* ---------- pitch ---------- */
+  .pitch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 4px 12px;
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    font-size: 0.78125rem;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+  }
+  .pulse {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0;
+  }
+
+  .ask {
+    max-width: 18ch;
+    font-size: clamp(1.875rem, 5.6vw, 3.625rem);
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    color: var(--hi);
+    text-wrap: balance;
+  }
+  .accent {
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+  .caret {
+    display: inline-block;
+    width: 0.42em;
+    height: 0.82em;
+    margin-left: 0.12em;
+    vertical-align: -0.08em;
+    background: var(--accent);
+  }
+  .sub {
+    max-width: 52ch;
+    text-wrap: balance;
+    font-size: 1rem;
+    color: var(--dim);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .go {
+    padding: 0 26px;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
+    transition:
+      background 0.15s,
+      color 0.15s,
+      box-shadow 0.3s;
+  }
+  .go:hover,
+  .go:focus-visible {
+    box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+  .ghost {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 22px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--fg);
+    font-weight: 700;
+    text-decoration: none;
+    transition:
+      border-color 0.15s,
+      color 0.15s;
+  }
+  .ghost:hover {
+    border-color: var(--fg);
+    color: var(--hi);
+  }
+  /* ---------- write to: a divider, then the address in a small terminal field ---------- */
+  .mail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: min(100%, 440px);
+    margin-top: 6px;
+  }
+  .mail-or {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .mail-or::before,
+  .mail-or::after {
+    content: '';
+    flex: 1;
+    border-top: 1px dashed var(--line);
+  }
+  .mail-box {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    transition:
+      border-color 0.2s,
+      box-shadow 0.3s;
+  }
+  .mail-box:hover,
+  .mail-box:focus-within,
+  .mail.done .mail-box {
+    border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+    box-shadow: 0 12px 30px -16px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  .mail-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 46px;
+    border-right: 1px solid var(--line);
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    color: var(--accent);
+  }
+  .mail-icon svg {
+    width: 18px;
+    height: 15px;
+  }
+  .mail svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .mail-address {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    overflow-wrap: anywhere;
+    font-size: 0.90625rem;
+    font-weight: 700;
+    color: var(--hi);
+    text-align: left;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .mail-address:hover {
+    color: var(--accent);
+  }
+  .mail-address:focus-visible,
+  .mail-copy:focus-visible {
+    outline-offset: -2px;
+  }
+  .mail-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex: none;
+    min-width: 92px;
+    padding: 0 14px;
+    border: 0;
+    border-left: 1px solid var(--line);
+    background: var(--bar);
+    color: var(--dim);
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+  .mail-copy svg {
+    width: 14px;
+    height: 14px;
+  }
+  .mail-copy:hover {
+    background: var(--hover);
+    color: var(--accent);
+  }
+  .i-done {
+    display: none;
+    stroke-width: 2;
+  }
+  .mail.done .mail-copy {
+    background: color-mix(in srgb, var(--accent) 14%, var(--bar));
+    color: var(--accent);
+  }
+  .mail.done .i-copy {
+    display: none;
+  }
+  .mail.done .i-done {
+    display: block;
+  }
+
+  /* ---------- pipeline ---------- */
+  .pipeline {
+    --node: 13px;
+    position: relative;
+    width: 100%;
+    max-width: 860px;
+  }
+  .steps {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Dashed base track and the flight lane, both from the first node centre to the last. */
+  .track,
+  .flight {
+    position: absolute;
+    top: calc(var(--node) / 2);
+    left: calc(50% / var(--steps));
+    right: calc(50% / var(--steps));
+    height: 1px;
+  }
+  .track {
+    background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 10px);
+  }
+  .flight {
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Painted track between two steps, blending one colour into the next; --g is how much is painted. */
+  .seg {
+    position: absolute;
+    top: calc(var(--node) / 2 - 1px);
+    left: var(--x);
+    width: var(--w);
+    height: 2px;
+    background: linear-gradient(90deg, var(--ca), var(--cb));
+    transform: scaleX(var(--g, 0));
+    transform-origin: left;
+  }
+
+  /* ---------- comet (same build as the loop diagram's) ---------- */
+  .comet {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--p, 0) * 100%);
+    width: 0;
+    height: 0;
+    color: var(--accent);
+    opacity: 0;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  .head,
+  .head::after {
+    position: absolute;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .head {
+    top: -4.5px;
+    left: -4.5px;
+    width: 9px;
+    height: 9px;
+  }
+  .head::after {
+    content: '';
+    inset: -7px;
+    opacity: 0.2;
+  }
+  .tail {
+    position: absolute;
+    top: -1.75px;
+    right: 0;
+    width: 96px;
+    height: 3.5px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, currentColor);
+  }
+
+  /* ---------- steps ---------- */
+  .steps li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+  }
+  .node {
+    position: relative;
+    width: var(--node);
+    height: var(--node);
+    margin-bottom: 10px;
+    border: 1.5px solid color-mix(in srgb, var(--c) 45%, var(--line));
+    border-radius: 50%;
+    background: var(--bg);
+    transition:
+      border-color 0.3s,
+      background-color 0.3s;
+  }
+  /* Rings that ripple out when the comet lands. */
+  .node::before,
+  .node::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border: 1.5px solid var(--c);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .num {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+  }
+  .step {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--hi);
+    transition: color 0.3s;
+  }
+  .step::before {
+    content: './';
+    color: var(--dim);
+    font-weight: 400;
+  }
+  .text {
+    max-width: 20ch;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--dim);
+  }
+
+  /* ---------- release log ---------- */
+  .log {
+    position: relative;
+    height: 22px;
+    margin-top: 30px;
+    font-size: 0.8125rem;
+    line-height: 1.375rem;
+  }
+  .log > span {
+    position: absolute;
+    inset: 0;
+    color: var(--c);
+    white-space: nowrap;
+    opacity: 0;
+  }
+  .log .log-w {
+    color: var(--dim);
+    opacity: 1;
+  }
+  .log-3 {
+    font-weight: 700;
+    text-shadow: var(--glow);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .caret,
+    .blink {
+      animation: blink 1.1s steps(1) infinite;
+    }
+    .pulse::after {
+      animation: ping 2s ease-out infinite;
+    }
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes ping {
+    0% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(3);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .go,
+    .ghost,
+    .node,
+    .step,
+    .mail-box,
+    .mail-address,
+    .mail-copy {
+      transition: none;
+    }
+    .flight {
+      display: none;
+    }
+    /* No run to watch, so hovering the main button lights the steps instead. */
+    .finale:has(.go:hover, .go:focus-visible) .node {
+      border-color: var(--c);
+      background: var(--c);
+    }
+    .finale:has(.go:hover, .go:focus-visible) .step {
+      color: var(--c);
+    }
+  }
+
+  /* Phones: the pipeline turns into a vertical list running down the left. */
+  @media (max-width: 599.98px) {
+    /* The address keeps one line: the copy button shows only its icon (the word stays for screen readers). */
+    .mail-icon {
+      width: 40px;
+    }
+    .mail-address {
+      padding: 0 12px;
+      font-size: 0.84375rem;
+    }
+    .mail-copy {
+      min-width: 48px;
+      padding: 0;
+    }
+    .mail-copy svg {
+      width: 16px;
+      height: 16px;
+    }
+    .mail-copy-text {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .finale {
+      align-items: stretch;
+      text-align: left;
+    }
+    .pitch {
+      align-items: flex-start;
+    }
+    .actions {
+      justify-content: flex-start;
+    }
+    .steps {
+      --gap: 18px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--gap);
+    }
+    .track {
+      display: none;
+    }
+    /* Each step draws the dashed track down to the next node, beneath the painted one. */
+    .pipeline {
+      isolation: isolate;
+    }
+    .steps li:not(:last-child)::after {
+      content: '';
+      z-index: -1;
+      position: absolute;
+      top: calc(var(--node) + 6px);
+      bottom: calc(-1 * var(--gap) + 2px);
+      left: calc(var(--node) / 2 - 0.5px);
+      width: 1px;
+      background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 10px);
+    }
+    .steps li {
+      display: grid;
+      grid-template-columns: var(--node) auto 1fr;
+      align-items: baseline;
+      gap: 2px 12px;
+      padding: 0;
+    }
+    .node {
+      grid-row: span 2;
+      align-self: start;
+      margin: 2px 0 0;
+    }
+    .num {
+      grid-column: 2;
+    }
+    .step {
+      grid-column: 3;
+    }
+    .text {
+      grid-column: 3;
+      max-width: none;
+    }
+
+    /* Measured track (see the script): segments and the comet run top to bottom. */
+    .seg {
+      top: var(--a);
+      left: calc(var(--node) / 2 - 1px);
+      width: 2px;
+      height: calc(var(--b) - var(--a));
+      background: linear-gradient(180deg, var(--ca), var(--cb));
+      transform: scaleY(var(--g, 0));
+      transform-origin: top;
+    }
+    .flight {
+      top: var(--y0);
+      left: calc(var(--node) / 2);
+      right: auto;
+      width: 1px;
+      height: calc(var(--ylast) - var(--y0));
+    }
+    .comet {
+      top: calc(var(--p, 0) * 100%);
+      left: 50%;
+      rotate: 90deg;
+    }
+    .pipeline:not(.measured) :is(.seg, .flight) {
+      display: none;
+    }
+    .log {
+      margin-top: 24px;
+    }
+  }
+</style>

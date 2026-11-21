@@ -1,0 +1,123 @@
+/* Interactive terminal overlay. Imported by Terminal.astro. */
+.term {
+  width: min(760px, calc(100vw - 24px));
+  max-width: none;
+  height: min(520px, calc(100dvh - 24px));
+  max-height: none;
+  padding: 0;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  box-shadow: 0 24px 80px -20px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.term[open] {
+  display: flex;
+  flex-direction: column;
+}
+.term::backdrop {
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(2px);
+}
+.term-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bar);
+  color: var(--dim);
+  font-size: 0.8125rem;
+}
+.term-close {
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--dim);
+  font: inherit;
+  cursor: pointer;
+}
+.term-close:hover {
+  color: var(--accent);
+}
+.term-out {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.term-line {
+  min-height: 1.6em;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.term-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+.term-row a {
+  color: var(--cyan);
+}
+.term-row a:hover {
+  color: var(--accent);
+}
+.term-key {
+  flex: 0 0 22ch;
+  color: var(--accent);
+}
+.term-dim {
+  color: var(--dim);
+}
+.term-hi {
+  color: var(--hi);
+  font-weight: 700;
+}
+.term-err {
+  color: var(--coral);
+}
+.term-echo {
+  margin-top: 6px;
+  color: var(--hi);
+}
+.term-prompt {
+  color: var(--accent);
+  font-weight: 700;
+}
+.term-in {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  padding: 4px 16px 12px;
+  border-top: 2px solid transparent;
+}
+/* The input has no outline of its own: a rule above the prompt shows it has focus. */
+.term-in:focus-within {
+  border-top-color: var(--accent);
+}
+.term-out:focus-visible {
+  outline-offset: -2px;
+}
+.term-in input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--hi);
+  caret-color: var(--accent);
+  font: inherit;
+  /* 16px stops iOS from zooming the page when the field is focused. */
+  font-size: 16px;
+}
+@media (max-width: 411.98px) {
+  .term-key {
+    flex-basis: 100%;
+  }
+}

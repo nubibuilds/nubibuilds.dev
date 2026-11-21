@@ -1,0 +1,132 @@
+---
+/**
+ * Screenshot grid for a case study. Each image is served in several sizes and loaded only
+ * when it nears the screen. The grid is a `.prose` block, so ProseEnhance adds the caption
+ * (from `caption`) and click-to-zoom exactly as it does for images in the Markdown body.
+ * Each picture is framed like a small window.
+ *
+ * Masonry layout: the pictures are dealt into two columns at build time, each one going to
+ * the column that is shorter so far (by aspect ratio), so a tall phone screenshot next to
+ * wide desktop ones leaves no hole. Columns wrap to one when the page is narrow; the reading
+ * order is then column by column, which is also the DOM and tab order.
+ */
+import WorkImage from './WorkImage.astro';
+import type { WorkEntry } from '../lib/queries';
+
+interface Props {
+  items: WorkEntry['data']['gallery'];
+  /** Heading above the grid, in the page's language. */
+  heading?: string;
+}
+
+const { items, heading = '# screenshots' } = Astro.props;
+
+/** Height of a picture as a share of its width (remote images without a size use 16:9). */
+function ratio(item: Props['items'][number]): number {
+  if (typeof item.src !== 'string') return item.src.height / item.src.width;
+  return item.width && item.height ? item.height / item.width : 9 / 16;
+}
+
+/* Window bar, caption and gap, roughly, as a share of the column width. */
+const EXTRA = 0.15;
+const columnCount = items.length > 1 ? 2 : 1;
+const columns = Array.from({ length: columnCount }, () => ({ height: 0, items: [] as Props['items'] }));
+for (const item of items) {
+  const shortest = columns.reduce((a, b) => (b.height < a.height ? b : a));
+  shortest.items.push(item);
+  shortest.height += ratio(item) + (item.caption ? EXTRA : EXTRA / 2);
+}
+---
+
+{
+  items.length > 0 && (
+    <section class="gallery-block" aria-labelledby="gallery-heading">
+      <h2 id="gallery-heading" class="gallery-heading">
+        {heading} <span class="gallery-count">({items.length})</span>
+      </h2>
+      <div class="prose gallery">
+        {columns.map((column) => (
+          <div class="gallery-col">
+            {column.items.map((item) => (
+              <WorkImage src={item.src} alt={item.alt} title={item.caption} widths={[480, 800, 1200, 1600]} sizes="(min-width: 900px) 520px, 100vw" width={item.width} height={item.height} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+<style is:global>
+  .gallery-block {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 36px;
+    border-top: 1px dashed var(--line);
+  }
+  .gallery-heading {
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--hi);
+  }
+  .gallery-count {
+    font-weight: 400;
+    color: var(--dim);
+  }
+  /* Two columns side by side, or stacked once each would be under 320px wide. */
+  .prose.gallery {
+    display: flex;
+    /* .prose is a column flexbox; the gallery lays its columns out in a row. */
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .gallery-col {
+    display: flex;
+    flex: 1 1 320px;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+  .prose.gallery img {
+    width: 100%;
+  }
+  /* A window bar over each picture. */
+  .prose.gallery .figure > .zoom,
+  .gallery-col > img {
+    position: relative;
+    padding-top: 26px;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(circle, var(--coral) 3.5px, transparent 4px) 12px 9px / 8px 8px no-repeat,
+      radial-gradient(circle, var(--amber) 3.5px, transparent 4px) 26px 9px / 8px 8px no-repeat,
+      radial-gradient(circle, var(--accent) 3.5px, transparent 4px) 40px 9px / 8px 8px no-repeat,
+      var(--bar);
+    transition:
+      border-color 0.3s,
+      translate 0.3s,
+      box-shadow 0.3s;
+  }
+  .prose.gallery .figure > .zoom img {
+    border: 0;
+    border-top: 1px solid var(--line);
+  }
+  .prose.gallery .figure > .zoom:hover,
+  .prose.gallery .figure > .zoom:focus-visible {
+    border-color: var(--accent);
+    translate: 0 -4px;
+    box-shadow: 0 26px 60px -34px color-mix(in srgb, var(--accent) 65%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .prose.gallery .figure > .zoom {
+      transition: none;
+    }
+    .prose.gallery .figure > .zoom:hover,
+    .prose.gallery .figure > .zoom:focus-visible {
+      translate: none;
+    }
+  }
+</style>

@@ -1,0 +1,30 @@
+---
+/**
+ * Table of contents built from a Markdown entry's headings.
+ * Collapsed by default on small screens; ProseEnhance opens it on wide screens,
+ * where the page pins it beside the text, and highlights the current section.
+ */
+import TocTree from './TocTree.astro';
+
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+  /** Deepest heading level to list (2 = only H2). */
+  maxDepth?: 2 | 3;
+  /** Text of the collapsible heading. */
+  label?: string;
+}
+
+const { headings, maxDepth = 3, label = '# contents' } = Astro.props;
+const sectionCount = headings.filter((h) => h.depth === 2 && h.slug !== 'footnote-label').length;
+---
+
+{
+  sectionCount > 1 && (
+    <details class="toc" data-toc>
+      <summary>{label}</summary>
+      <nav aria-label={label.replace(/^#\s*/, '')}>
+        <TocTree headings={headings} maxDepth={maxDepth} />
+      </nav>
+    </details>
+  )
+}

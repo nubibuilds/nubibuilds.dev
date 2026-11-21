@@ -1,0 +1,16 @@
+---
+import BaseLayout from '@app/SiteLayout.astro';
+import SearchBox from '@features/search/components/SearchBox.astro';
+import WritingIndexPage from '@features/writing/components/WritingIndexPage.astro';
+import { ui } from '@features/writing/i18n';
+import { writingIndexMeta } from '@features/writing/lib/routes';
+
+const lang = 'id';
+const t = ui[lang];
+---
+
+<BaseLayout {...writingIndexMeta(lang)}>
+  <WritingIndexPage lang={lang}>
+    <SearchBox slot="tools" kind="writing" lang={lang} label={t.searchLabel} placeholder={t.searchPlaceholder} empty={t.searchEmpty} found={t.searchFound} />
+  </WritingIndexPage>
+</BaseLayout>

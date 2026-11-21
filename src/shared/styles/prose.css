@@ -1,0 +1,656 @@
+/*
+ * Markdown rendering for case studies and articles (`.prose`).
+ * Everything here is plain CSS on the HTML that Astro's Markdown pipeline emits;
+ * the interactive extras (copy, tabs, callouts, zoom, anchors) are added by
+ * src/shared/lib/prose-enhance.js and styled below.
+ */
+
+.prose {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  font-size: 1rem;
+}
+.prose > * {
+  min-width: 0;
+}
+
+/* ---------- headings + anchor links ---------- */
+.prose h2 {
+  margin-top: 28px;
+  font-size: 1.625rem;
+  line-height: 1.25;
+  color: var(--hi);
+  scroll-margin-top: 24px;
+}
+.prose h2::before {
+  content: '## ';
+  color: var(--accent);
+}
+.prose h3 {
+  margin-top: 8px;
+  font-size: 1.0625rem;
+  color: var(--hi);
+  scroll-margin-top: 24px;
+}
+.prose h3::before {
+  content: '### ';
+  color: var(--cyan);
+}
+.prose .anchor {
+  display: inline-block;
+  min-width: 24px;
+  margin-left: 10px;
+  padding: 0 6px;
+  text-align: center;
+  color: var(--dim);
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.prose :is(h2, h3):hover .anchor,
+.prose .anchor:focus-visible {
+  opacity: 1;
+}
+.prose .anchor:hover {
+  color: var(--accent);
+}
+@media (hover: none) {
+  .prose .anchor {
+    opacity: 0.7;
+  }
+}
+
+/* ---------- inline ---------- */
+.prose a {
+  text-underline-offset: 3px;
+}
+.prose strong {
+  color: var(--hi);
+}
+.prose del {
+  color: var(--dim);
+}
+.prose mark {
+  padding: 0 4px;
+  background: color-mix(in srgb, var(--amber) 28%, transparent);
+  color: var(--hi);
+}
+.prose kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  background: var(--bar);
+  color: var(--hi);
+  font: inherit;
+  font-size: 0.88em;
+}
+.prose :not(pre) > code {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--amber);
+  font-size: 0.92em;
+}
+.prose hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px dashed var(--line);
+}
+
+/* ---------- lists, task lists, definition lists ---------- */
+.prose ul,
+.prose ol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 0;
+  list-style: none;
+}
+.prose li {
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+.prose li > * {
+  text-indent: 0;
+}
+/* Loose lists and footnotes wrap item text in <p>; keep it on the marker's line. */
+.prose li > p:first-child {
+  display: inline;
+}
+.prose li > :is(ul, ol) {
+  margin-top: 8px;
+}
+.prose ul > li::before {
+  content: '- ';
+  color: var(--accent);
+}
+.prose ol {
+  counter-reset: item;
+}
+.prose ol > li {
+  padding-left: 3ch;
+  text-indent: -3ch;
+}
+.prose ol > li::before {
+  counter-increment: item;
+  content: counter(item) '. ';
+  color: var(--accent);
+}
+/* GFM task lists: `- [ ]` / `- [x]` drawn as terminal checkboxes. */
+.prose li:has(> input[type='checkbox'])::before,
+.prose li:has(> p > input[type='checkbox'])::before {
+  content: none;
+}
+.prose input[type='checkbox'] {
+  appearance: none;
+  margin: 0 1ch 0 0;
+  color: var(--dim);
+  font: inherit;
+  vertical-align: baseline;
+}
+.prose input[type='checkbox']::before {
+  content: '[ ]';
+}
+.prose input[type='checkbox']:checked::before {
+  content: '[x]';
+  color: var(--accent);
+}
+.prose dt {
+  color: var(--hi);
+  font-weight: 700;
+}
+.prose dd {
+  margin: 4px 0 12px 2ch;
+}
+
+/* ---------- blockquote ---------- */
+.prose blockquote {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--hi);
+  font-size: 1.0625rem;
+}
+.prose blockquote > p:first-child::before {
+  content: '> ';
+  color: var(--cyan);
+}
+
+/* ---------- callouts: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`, `[!DANGER]` ---------- */
+.prose .callout,
+.prose .markdown-alert {
+  --c: var(--cyan);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, var(--line));
+  background: color-mix(in srgb, var(--c) 8%, var(--surface));
+  color: var(--fg);
+  font-size: 0.9375rem;
+}
+.prose .callout > p::before,
+.prose .markdown-alert > p::before {
+  content: none !important;
+}
+.prose .callout-title,
+.prose .markdown-alert-title {
+  color: var(--c);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.prose .callout-title[data-icon]::before {
+  content: '[' attr(data-icon) '] ' !important;
+  color: inherit;
+}
+.prose :is(.callout-tip, .markdown-alert-tip) {
+  --c: var(--accent);
+}
+.prose :is(.callout-important, .markdown-alert-important) {
+  --c: var(--violet);
+}
+.prose :is(.callout-warning, .markdown-alert-warning) {
+  --c: var(--amber);
+}
+.prose :is(.callout-caution, .callout-danger, .markdown-alert-caution) {
+  --c: var(--coral);
+}
+
+/* ---------- tables ---------- */
+.prose table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.prose th,
+.prose td {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+}
+/* Left-align headers by default, but let `:---:` / `---:` column alignment win. */
+.prose th:not([align], [style]) {
+  text-align: left;
+}
+.prose th {
+  background: var(--bar);
+  color: var(--hi);
+}
+.prose tbody tr:nth-child(even) td {
+  background: var(--surface);
+}
+
+/* ---------- images, captions, zoom ---------- */
+.prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+}
+.prose .figure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+.prose .zoom {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.prose .zoom:hover img {
+  border-color: var(--accent);
+}
+.prose figcaption {
+  color: var(--dim);
+  font-size: 0.84375rem;
+}
+.prose figcaption::before {
+  content: '# ';
+  color: var(--accent);
+}
+.lightbox {
+  max-width: none;
+  max-height: none;
+  width: 100vw;
+  height: 100dvh;
+  margin: 0;
+  padding: 56px 16px 16px;
+  border: 0;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+}
+.lightbox[open] {
+  display: grid;
+  place-items: center;
+}
+.lightbox::backdrop {
+  background: transparent;
+}
+.lightbox img {
+  max-width: 100%;
+  max-height: calc(100dvh - 88px);
+  border: 1px solid var(--line);
+  cursor: zoom-out;
+}
+.lightbox-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: var(--bar);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.lightbox-close:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---------- footnotes ---------- */
+.prose sup {
+  font-size: 0.78em;
+  line-height: 0;
+}
+.prose sup a {
+  text-decoration: none;
+}
+.prose sup a::before {
+  content: '[';
+}
+.prose sup a::after {
+  content: ']';
+}
+.prose :is(.footnotes, [data-footnotes]) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+.prose :is(.footnotes, [data-footnotes]) h2 {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--dim);
+}
+.prose :is(.footnotes, [data-footnotes]) h2::before {
+  content: '# ';
+}
+
+/* ---------- case studies: numbered, colour-coded sections ---------- */
+.prose.case {
+  counter-reset: section;
+}
+.prose.case > h2 {
+  --c: var(--accent);
+  counter-increment: section;
+  position: relative;
+  margin-top: 48px;
+  padding-top: 36px;
+  border-top: 1px dashed var(--line);
+  font-size: clamp(1.625rem, 3.2vw, 2.125rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.prose.case > h2:first-child {
+  margin-top: 0;
+}
+/* Section number: `## 01` in the section's colour, on a glowing tick over the divider. */
+.prose.case > h2::before {
+  content: '## ' counter(section, decimal-leading-zero);
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--c);
+}
+.prose.case > h2::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 56px;
+  height: 2px;
+  background: var(--c);
+  box-shadow: 0 0 16px var(--c);
+}
+.prose.case > h2:nth-of-type(1) {
+  --c: var(--coral);
+}
+.prose.case > h2:nth-of-type(2) {
+  --c: var(--cyan);
+}
+.prose.case > h2:nth-of-type(3) {
+  --c: var(--violet);
+}
+.prose.case > h2:nth-of-type(4) {
+  --c: var(--accent);
+}
+.prose.case > h2 + p {
+  font-size: 1.06em;
+  color: var(--hi);
+}
+
+/* ---------- code blocks (Shiki, NubiBuilds theme: src/shared/lib/shiki-theme.mjs) ---------- */
+/* Syntax colours. Dark is tuned for #0a0e0b / #0f1511; every pair is at least 5:1 (WCAG AA). */
+:root {
+  --code-bg: var(--surface);
+  --code-fg: #cfdad2;
+  --code-comment: #7f9485;
+  --code-keyword: #b9a6ff;
+  --code-storage: #d7a6ff;
+  --code-operator: #7fe3d0;
+  --code-function: #7fd4ff;
+  --code-type: #f2d58a;
+  --code-string: #86efa5;
+  --code-regex: #5ee6c8;
+  --code-constant: #f0b45a;
+  --code-tag: #ff8a7a;
+  --code-attr: #f2d58a;
+  --code-param: #e8f1ea;
+  --code-punct: #8a9d8f;
+  --code-inserted: var(--accent);
+  --code-deleted: var(--coral);
+  --code-changed: var(--amber);
+  --code-pad: 16px;
+  /* Height of the header strip on code blocks; the copy button matches it exactly. */
+  --code-strip: 40px;
+}
+
+/* Light: the same roles, darkened for #f6f8f4. */
+:root[data-theme='light'] {
+  --code-fg: #26332b;
+  --code-comment: #5d6f63;
+  --code-keyword: #5b43c4;
+  --code-storage: #8a35b8;
+  --code-operator: #0b6e60;
+  --code-function: #0a6589;
+  --code-type: #6e5800;
+  --code-string: #0b7039;
+  --code-regex: #0b6e60;
+  --code-constant: #a14d00;
+  --code-tag: #b3392b;
+  --code-attr: #6e5800;
+  --code-param: #0a0e0b;
+  --code-punct: #516357;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --code-fg: #26332b;
+    --code-comment: #5d6f63;
+    --code-keyword: #5b43c4;
+    --code-storage: #8a35b8;
+    --code-operator: #0b6e60;
+    --code-function: #0a6589;
+    --code-type: #6e5800;
+    --code-string: #0b7039;
+    --code-regex: #0b6e60;
+    --code-constant: #a14d00;
+    --code-tag: #b3392b;
+    --code-attr: #6e5800;
+    --code-param: #0a0e0b;
+    --code-punct: #516357;
+  }
+}
+
+.astro-code {
+  margin: 0;
+  padding: var(--code-pad);
+  border: 1px solid var(--line);
+  font-family: var(--font-ascii);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  tab-size: 2;
+  overflow-x: auto;
+}
+.astro-code code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  counter-reset: line;
+}
+/* Header strip: optional file name (```ts title="a.ts") and the language. Sticky while code scrolls sideways. */
+.astro-code[data-language]::before {
+  content: attr(data-language);
+  display: block;
+  position: sticky;
+  /* Sticky offsets count from the block's content box; minus the padding keeps the strip
+     flush with the border once the code scrolls sideways (otherwise it shifts right). */
+  left: calc(var(--code-pad) * -1);
+  box-sizing: border-box;
+  height: var(--code-strip);
+  margin: calc(var(--code-pad) * -1) calc(var(--code-pad) * -1) 14px;
+  /* Room on the right so a long file name never runs under the copy button. */
+  padding: 0 calc(var(--code-pad) + 96px) 0 var(--code-pad);
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background: var(--bar);
+  color: var(--dim);
+  font-family: var(--font-mono);
+  font-size: 0.78125rem;
+  line-height: calc(var(--code-strip) - 0.0625rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.astro-code[data-title]::before {
+  content: attr(data-title) '  ·  ' attr(data-language);
+}
+/* Each line spans the block so highlights reach both edges. */
+.astro-code .line {
+  display: inline-block;
+  min-width: 100%;
+  margin: 0 calc(var(--code-pad) * -1);
+  padding: 0 var(--code-pad);
+  box-sizing: content-box;
+}
+/* Line numbers for real code; plain-text blocks (ASCII diagrams) stay clean. */
+.astro-code:not([data-language='text'], [data-language='plaintext'], [data-language='ansi']) .line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 2ch;
+  margin-right: 16px;
+  color: var(--dim);
+  text-align: right;
+  opacity: 0.7;
+  user-select: none;
+}
+/* Highlighted lines: ```ts {2,4-6} */
+.astro-code .line.highlighted {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.astro-code .line.highlighted::before {
+  color: var(--accent);
+  opacity: 1;
+}
+.astro-code[data-language='text'],
+.astro-code[data-language='plaintext'] {
+  color: var(--cyan) !important;
+  line-height: 1.3;
+}
+.astro-code[data-language='text'] span,
+.astro-code[data-language='plaintext'] span {
+  color: inherit !important;
+}
+
+/* Frame + copy button, added when JavaScript is available. */
+.code-frame {
+  position: relative;
+  min-width: 0;
+}
+.code-copy {
+  position: absolute;
+  /* Sits on the header strip: same height, font and line box, so the labels share a baseline
+     and the strip's bottom border runs unbroken underneath. */
+  top: 1px;
+  right: 1px;
+  height: calc(var(--code-strip) - 1px);
+  padding: 0 var(--code-pad);
+  border: 0;
+  background: none;
+  color: var(--dim);
+  font-family: var(--font-mono);
+  font-size: 0.78125rem;
+  line-height: calc(var(--code-strip) - 0.0625rem);
+  cursor: pointer;
+}
+.code-copy:hover,
+.code-copy[data-state='copied'] {
+  color: var(--accent);
+}
+
+/* ---------- code tabs: <div class="code-tabs"> around several fenced blocks ---------- */
+.code-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.code-tabs.is-ready {
+  gap: 0;
+}
+.code-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  background: var(--bar);
+}
+.code-tab {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--dim);
+  font: inherit;
+  font-size: 0.84375rem;
+  cursor: pointer;
+}
+.code-tab:hover {
+  color: var(--accent);
+  background: var(--hover);
+}
+.code-tab[aria-selected='true'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.code-tabs.is-ready .code-frame[hidden] {
+  display: none;
+}
+
+/* ---------- small phones (< 412px) ---------- */
+@media (max-width: 411.98px) {
+  :root {
+    --code-pad: 12px;
+  }
+  .prose {
+    font-size: 0.90625rem;
+  }
+  .prose h2 {
+    font-size: 1.3125rem;
+  }
+  .prose blockquote {
+    padding: 12px 14px;
+    font-size: 0.9375rem;
+  }
+  .prose .callout,
+  .prose .markdown-alert {
+    padding: 12px 14px;
+    font-size: 0.875rem;
+  }
+  .astro-code {
+    font-size: 0.8125rem;
+  }
+  .astro-code .line::before {
+    margin-right: 10px;
+  }
+  .code-tab {
+    padding: 0 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prose .anchor {
+    transition: none;
+  }
+}

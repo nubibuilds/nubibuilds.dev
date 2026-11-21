@@ -1,0 +1,292 @@
+---
+import BaseLayout from '@app/SiteLayout.astro';
+import Section from '@shared/ui/Section.astro';
+import SectionHeading from '@shared/ui/SectionHeading.astro';
+import Prompt from '@shared/ui/Prompt.astro';
+import Rain from '@shared/ui/Rain.astro';
+import Marquee from '@shared/ui/Marquee.astro';
+import { CODE_LINES, COMMITS, NETWORK_LINES, TREE_LINES, WORDS } from '@shared/ui/ornaments';
+import ProfileCard from '@features/about/components/ProfileCard.astro';
+import Principles from '@features/about/components/Principles.astro';
+import LoopDiagram from '@features/about/components/LoopDiagram.astro';
+import Journey from '@features/about/components/Journey.astro';
+import Toolbox from '@features/about/components/Toolbox.astro';
+import ContactCta from '@features/contact/components/ContactCta.astro';
+import { story } from '@features/about/data/about';
+---
+
+<BaseLayout title="About" description={story[0]} windowTitle="~/about">
+  <Section bordered={false}>
+    <Rain slot="ornament" texts={WORDS} count={6} />
+    <div class="intro">
+      <div class="head stack" style="--gap: 18px">
+        <Prompt cmd="less about.txt" />
+        <p class="eyebrow">
+          <span class="rule" aria-hidden="true"></span>
+          <span class="w-build">build</span>
+          <span aria-hidden="true">·</span>
+          <span class="w-learn">learn</span>
+          <span aria-hidden="true">·</span>
+          <span class="w-improve">improve</span>
+        </p>
+        <h1 class="h-page title">
+          Build with <span class="intent">intent</span>.<span class="cursor" aria-hidden="true"></span>
+        </h1>
+      </div>
+
+      <ProfileCard />
+
+      <div class="body">
+        <div class="story">
+          {story.map((paragraph, i) => <p style={`--i:${i}`}>{paragraph}</p>)}
+        </div>
+        {/* Closed the way `less` closes a file. */}
+        <p class="end" style={`--i:${story.length}`} aria-hidden="true">(END)</p>
+      </div>
+    </div>
+  </Section>
+
+  <Section>
+    <Marquee slot="ornament" lines={CODE_LINES} rows={3} />
+    <div class="stack">
+      <SectionHeading cmd="cat principles.md" title="how-i-work" />
+      <div class="how">
+        <Principles />
+        <LoopDiagram />
+      </div>
+    </div>
+  </Section>
+
+  <Section>
+    <Rain slot="ornament" texts={COMMITS} edge />
+    <Journey>
+      <SectionHeading
+        slot="heading"
+        cmd="git log --graph"
+        title="journey"
+        note="From the first line of code to shipping with AI, one commit at a time."
+      />
+    </Journey>
+  </Section>
+
+  <Section>
+    <Marquee slot="ornament" lines={TREE_LINES} rows={2} />
+    <div class="stack" style="--gap: 28px">
+      <SectionHeading cmd="tree ~/toolbox" title="toolbox" note="The stack I reach for, folder by folder." />
+      <Toolbox />
+    </div>
+  </Section>
+
+  <Section>
+    <Marquee slot="ornament" lines={NETWORK_LINES} rows={2} />
+    <ContactCta />
+  </Section>
+</BaseLayout>
+
+<style>
+  /* ---------- intro: copy on the left, the whoami window spanning both rows on the right ---------- */
+  .intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'head card'
+      'body card';
+    align-items: start;
+    gap: 32px clamp(40px, 6vw, 88px);
+  }
+  .head {
+    grid-area: head;
+  }
+  .body {
+    grid-area: body;
+  }
+  .intro :global(.profile) {
+    grid-area: card;
+    /* Room for the dashed copy offset behind the card. */
+    margin: 4px 10px 10px 0;
+  }
+
+  .eyebrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.78125rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .w-build {
+    color: var(--accent);
+  }
+  .w-learn {
+    color: var(--cyan);
+  }
+  .w-improve {
+    color: var(--violet);
+  }
+  .rule {
+    width: 32px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent));
+  }
+
+  .title {
+    font-size: clamp(2.25rem, 5.4vw, 3.875rem);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+  }
+  .title .cursor {
+    width: 0.42em;
+    height: 0.82em;
+    margin-left: 0.08em;
+    vertical-align: baseline;
+  }
+  .intent {
+    position: relative;
+    display: inline-block;
+    color: var(--accent);
+    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent) 45%, transparent));
+  }
+  @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    .intent {
+      background: linear-gradient(100deg, var(--accent) 30%, var(--cyan));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+  /* A stroke under the word, drawn once on load. */
+  .intent::after {
+    content: '';
+    position: absolute;
+    left: 0.04em;
+    right: 0.04em;
+    bottom: -0.06em;
+    height: 0.07em;
+    min-height: 3px;
+    background: linear-gradient(to right, var(--accent), var(--cyan));
+    transform-origin: 0 50%;
+  }
+  :global(:root[data-theme='light']) .intent {
+    filter: none;
+  }
+  @media (prefers-color-scheme: light) {
+    :global(:root:not([data-theme])) .intent {
+      filter: none;
+    }
+  }
+
+  /* One continuous read: a thin rule down the left, lit in the accent where it starts. */
+  .story {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-left: 24px;
+    border-left: 1px dashed var(--line);
+  }
+  .story::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -1px;
+    width: 1px;
+    height: 72px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+  }
+  .story p {
+    max-width: 62ch;
+    font-size: 0.96875rem;
+    transition: color 0.2s;
+  }
+  .story p:first-child {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--hi);
+  }
+  .story p:hover {
+    color: var(--hi);
+  }
+  .end {
+    display: inline-block;
+    margin: 22px 0 0 25px;
+    padding: 1px 8px;
+    background: var(--dim);
+    color: var(--bg);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .intent::after {
+      animation: intro-underline 0.9s var(--ease-out) 0.5s both;
+    }
+    .story p:not(:first-child),
+    .end {
+      animation: intro-line 0.6s var(--ease-out) both;
+      animation-delay: calc(0.25s + var(--i, 4) * 0.12s);
+    }
+  }
+  @keyframes intro-underline {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes intro-line {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  @media (max-width: 879.98px) {
+    .intro {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto;
+      grid-template-areas:
+        'head'
+        'card'
+        'body';
+    }
+    /* The portrait follows the title on narrow screens, so it is seen before the long read. */
+    .intro :global(.profile) {
+      width: calc(100% - 10px);
+      max-width: 460px;
+    }
+  }
+  @media (max-width: 411.98px) {
+    .title {
+      font-size: 2rem;
+    }
+    .story {
+      padding-left: 16px;
+    }
+    .story p {
+      font-size: 0.90625rem;
+    }
+    .story p:first-child {
+      font-size: 1rem;
+    }
+    .end {
+      margin-left: 17px;
+    }
+  }
+
+  .how {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 32px 56px;
+  }
+  @media (max-width: 879.98px) {
+    .how {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    /* The orbit leads on narrow screens so the section opens with motion, not a list. */
+    .how :global(.loop) {
+      order: -1;
+    }
+  }
+</style>

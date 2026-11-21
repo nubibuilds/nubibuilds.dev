@@ -1,0 +1,239 @@
+---
+/**
+ * The case study's hero picture, framed as a terminal window with a glow beneath it.
+ *   - `cover` set: the screenshot fills the window.
+ *   - no `cover` but a `youtube` id: the video fills the window.
+ *   - neither: the project's generated ASCII cover (the same art as its card on /work).
+ * With both `cover` and `youtube`, the video follows the window.
+ * The spec strip (CaseMeta) goes in the slot and sits flush under the window.
+ */
+import YouTube from '@shared/ui/YouTube.astro';
+import { ui } from '../i18n';
+import { coverArt } from '../lib/cover';
+import { workLang, workSlug, type WorkEntry } from '../lib/queries';
+import WorkImage from './WorkImage.astro';
+
+interface Props {
+  entry: WorkEntry;
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const t = ui[workLang(entry)];
+const slug = workSlug(entry);
+const videoTitle = data.youtubeTitle ?? `${data.title} — ${t.walkthrough}`;
+const videoInWindow = !data.cover && Boolean(data.youtube);
+const file = data.cover ? 'preview.png' : videoInWindow ? 'walkthrough.mp4' : '--preview';
+---
+
+<div class="case-stage">
+  <div class="case-window" data-showcase>
+    <div class="cw-chrome" aria-hidden="true">
+      <span class="cw-dots"><i></i><i></i><i></i></span>
+      <span class="cw-path">~/work/{slug}/{file}</span>
+    </div>
+    {
+      data.cover ? (
+        <div class="cw-view">
+          <WorkImage
+            class="case-cover"
+            src={data.cover}
+            alt={data.coverAlt ?? `${t.screenshotOf} ${data.title}`}
+            widths={[640, 960, 1280, 1920]}
+            sizes="(min-width: 1168px) 1120px, 100vw"
+            width={data.coverWidth}
+            height={data.coverHeight}
+            priority
+          />
+        </div>
+      ) : videoInWindow ? (
+        <div class="cw-view cw-video">
+          <YouTube id={data.youtube!} title={videoTitle} />
+        </div>
+      ) : (
+        <div class="cw-view cw-ascii" aria-hidden="true">
+          <span class="cw-cmd">$ ./{slug} --preview</span>
+          <pre class="cw-art">{coverArt(slug, 64, 7)}</pre>
+        </div>
+      )
+    }
+    <div class="cw-spot" aria-hidden="true"></div>
+    <slot />
+  </div>
+  {data.cover && data.youtube && <div class="case-video"><YouTube id={data.youtube} title={videoTitle} /></div>}
+</div>
+
+<style is:global>
+  .case-stage {
+    --mx: 50%;
+    --my: 30%;
+    --rx: 0deg;
+    --ry: 0deg;
+    position: relative;
+    display: grid;
+    gap: 24px;
+    perspective: 1600px;
+  }
+  /* Glow pooled under the window. */
+  .case-stage::before {
+    content: '';
+    position: absolute;
+    inset: 12% 6% -8%;
+    z-index: -1;
+    background: radial-gradient(50% 60% at 50% 60%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+    filter: blur(30px);
+    pointer-events: none;
+  }
+  .case-window {
+    position: relative;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+    background: var(--bg);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--bg) 60%, transparent),
+      0 40px 90px -40px color-mix(in srgb, var(--accent) 55%, transparent);
+    transform: rotateX(var(--rx)) rotateY(var(--ry));
+    transform-origin: 50% 0;
+    transition:
+      transform 0.3s ease-out,
+      border-color 0.3s;
+  }
+  .case-window:hover {
+    border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+  }
+  .cw-chrome {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bar);
+    font-size: 0.78125rem;
+    color: var(--dim);
+  }
+  .cw-dots {
+    display: flex;
+    gap: 7px;
+  }
+  .cw-dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .cw-dots i:nth-child(1) {
+    background: var(--coral);
+  }
+  .cw-dots i:nth-child(2) {
+    background: var(--amber);
+  }
+  .cw-dots i:nth-child(3) {
+    background: var(--accent);
+  }
+  .cw-path {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cw-view {
+    position: relative;
+    overflow: hidden;
+  }
+  .case-cover {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .cw-video .yt {
+    border: 0;
+  }
+
+  /* Generated ASCII cover. */
+  .cw-ascii {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    container-type: inline-size;
+    aspect-ratio: 16 / 7;
+    padding: 0 28px;
+    background:
+      radial-gradient(circle at 50% 110%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
+      linear-gradient(color-mix(in srgb, var(--line) 55%, transparent) 1px, transparent 1px) 0 0 / 100% 26px,
+      linear-gradient(90deg, color-mix(in srgb, var(--line) 55%, transparent) 1px, transparent 1px) 0 0 / 26px 100%,
+      var(--bg);
+  }
+  .cw-cmd {
+    position: absolute;
+    top: 18px;
+    left: 28px;
+    font-size: 0.8125rem;
+    color: var(--dim);
+  }
+  .cw-art {
+    margin: 0;
+    font-family: var(--font-ascii);
+    font-size: clamp(5px, 2.5cqw, 22px);
+    line-height: 1;
+    white-space: pre;
+    background: linear-gradient(to top, var(--accent), var(--cyan) 70%, var(--violet));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    opacity: 0.8;
+    transform: scaleY(1.7);
+    transform-origin: 50% 100%;
+    mask-image: linear-gradient(to top, #000 60%, transparent);
+  }
+
+  /* Spotlight that follows the pointer (position set by showcase.js). */
+  .cw-spot {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(520px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .case-window:hover .cw-spot {
+    opacity: 1;
+  }
+
+  /* The window rises out of a tilt when the page opens. */
+  @media (prefers-reduced-motion: no-preference) {
+    .case-window {
+      animation: cw-rise 1.1s var(--ease-out) 0.25s backwards;
+    }
+    .case-stage::before {
+      animation: cw-glow 1.6s ease-out 0.4s backwards;
+    }
+  }
+  @keyframes cw-rise {
+    from {
+      opacity: 0;
+      transform: translateY(40px) rotateX(16deg) scale(0.96);
+    }
+  }
+  @keyframes cw-glow {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @media (max-width: 599.98px) {
+    .cw-ascii {
+      aspect-ratio: 16 / 9;
+      padding: 0 16px;
+    }
+    .cw-cmd {
+      left: 16px;
+      top: 12px;
+      font-size: 0.75rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .case-window,
+    .cw-spot {
+      transition: none;
+    }
+  }
+</style>

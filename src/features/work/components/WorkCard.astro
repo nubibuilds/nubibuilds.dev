@@ -1,0 +1,96 @@
+---
+import '../styles/work.css';
+import { transitionName } from '@shared/lib/vt';
+import { ui } from '../i18n';
+import { coverArt } from '../lib/cover';
+import { workLang, workSlug, workUrl, type WorkEntry } from '../lib/queries';
+import WorkImage from './WorkImage.astro';
+
+interface Props {
+  entry: WorkEntry;
+  /** Zero-based position in the list. */
+  index: number;
+  /** Heading level of the title: h2 when the list sits directly under the page's h1, h3 under a section heading. */
+  heading?: 'h2' | 'h3';
+}
+
+const { entry, index, heading: Heading = 'h3' } = Astro.props;
+const { data } = entry;
+const t = ui[workLang(entry)];
+const slug = workSlug(entry);
+const num = String(index + 1).padStart(2, '0');
+// Seeded by the slug, so a project has the same cover in every language.
+const art = coverArt(slug);
+const parts = [
+  { label: t.problem, color: 'var(--coral)', text: data.highlights.problem },
+  { label: t.architecture, color: 'var(--cyan)', text: data.highlights.architecture },
+  { label: t.implementation, color: 'var(--violet)', text: data.highlights.implementation },
+  { label: t.result, color: 'var(--accent)', text: data.highlights.result },
+];
+---
+
+<article class:list={['work-card reveal', { flip: index % 2 === 1 }]} data-showcase data-stack={data.stack.join('|')}>
+  <div class="wc-head">
+    <div class="wc-window">
+      <div class="wc-chrome" aria-hidden="true">
+        <span class="wc-dots"><i></i><i></i><i></i></span>
+        <span class="wc-path">~/work/{slug}</span>
+      </div>
+      {
+        data.cover ? (
+          <div class="wc-cover has-img">
+            <WorkImage class="wc-img" src={data.cover} alt={data.coverAlt ?? ''} widths={[420, 640, 840, 1280]} sizes="(min-width: 960px) 560px, 100vw" />
+            <span class="wc-scan" aria-hidden="true" />
+          </div>
+        ) : (
+          <div class="wc-cover" aria-hidden="true">
+            <span class="wc-cmd">$ ./{slug} --preview</span>
+            <pre class="wc-art">{art}</pre>
+            <span class="wc-scan" />
+          </div>
+        )
+      }
+      <div class="wc-spot" aria-hidden="true"></div>
+    </div>
+
+    <div class="wc-intro">
+      <p class="wc-index" aria-hidden="true">{num}</p>
+      <p class="wc-meta">
+        <span>drwxr-xr-x</span>
+        <span class="wc-when">{data.year}</span>
+        <span>{data.role}</span>
+        {data.draft && <span class="draft-badge" title="Draft: shown only in pnpm dev, left out of the build">[draft]</span>}
+      </p>
+      <Heading class="wc-title">
+        <a href={workUrl(entry)} style={`view-transition-name:${transitionName('work', entry.id)}`}>
+          {data.title}<span class="wc-slash">/</span>
+        </a>
+      </Heading>
+      <p class="wc-summary">{data.summary}</p>
+      {
+        data.stack.length > 0 && (
+          <ul class="wc-chips" aria-label={t.stack}>
+            {data.stack.map((stack) => (
+              <li>{stack}</li>
+            ))}
+          </ul>
+        )
+      }
+      <span class="wc-more" aria-hidden="true">
+        <span class="wc-prompt">$</span> cat case-study.md <span class="arrow">→</span>
+      </span>
+    </div>
+  </div>
+
+  {/* problem → architecture → implementation → result, as a pipeline. */}
+  <ol class="wc-flow">
+    {
+      parts.map((part, i) => (
+        <li style={`--c:${part.color};--i:${i}`}>
+          <p class="label"># {part.label}</p>
+          <p class="text">{part.text}</p>
+        </li>
+      ))
+    }
+  </ol>
+</article>

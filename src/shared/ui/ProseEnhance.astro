@@ -1,0 +1,11 @@
+---
+/**
+ * Adds the interactive reading features to rendered Markdown: callouts, heading
+ * anchors, copy buttons, code tabs, image zoom and the contents highlight.
+ * Place it AFTER the `.prose` content: the script is inlined and runs as soon as
+ * it is parsed, so the page never paints in its un-enhanced state.
+ */
+import script from '../lib/prose-enhance.js?raw';
+---
+
+<script is:inline set:html={script}></script>

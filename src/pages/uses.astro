@@ -1,0 +1,684 @@
+---
+import BaseLayout from '@app/SiteLayout.astro';
+import Section from '@shared/ui/Section.astro';
+import SectionHeading from '@shared/ui/SectionHeading.astro';
+import Marquee from '@shared/ui/Marquee.astro';
+import { BUILD_LINES } from '@shared/ui/ornaments';
+import { site } from '@shared/config/site';
+import { system, uses } from '@features/about/data/uses';
+
+const fileCount = uses.reduce((n, group) => n + group.items.length, 0);
+const maxItems = Math.max(...uses.map((group) => group.items.length));
+const slug = (dir: string) => dir.replace(/\/+$/, '');
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/* ---------- neofetch: system lines ---------- */
+const who = `${site.prompt.user}@${site.prompt.host}`;
+const sysRows = [...system, { key: 'packages', value: `${fileCount} tools in ${uses.length} dirs` }];
+
+/*
+ * ---------- neofetch: the ASCII laptop ----------
+ * Built from segments so each piece can take its own colour, and sized from the data so the
+ * frame always fits the directory names. Every line is exactly as wide as its characters.
+ */
+type Seg = { t: string; cls?: string; c?: string };
+const colW = Math.max(...uses.map((group) => group.dir.length)) + 2;
+const W = Math.max(24, colW * 2 + 2); // inner width of the screen
+const screen = (segs: Seg[]): Seg[] => {
+  const len = segs.reduce((n, s) => n + s.t.length, 0);
+  return [{ t: '│ ', cls: 'f' }, ...segs, { t: ' '.repeat(Math.max(0, W - 2 - len)) }, { t: ' │', cls: 'f' }];
+};
+const dirRows: Seg[][] = [];
+for (let i = 0; i < uses.length; i += 2) {
+  dirRows.push(uses.slice(i, i + 2).map((group) => ({ t: group.dir.padEnd(colW), c: group.color })));
+}
+const indent: Seg = { t: '  ' };
+const art: Seg[][] = [
+  [indent, { t: `┌${'─'.repeat(W)}┐`, cls: 'f' }],
+  [indent, ...screen([{ t: '●', c: 'var(--coral)' }, { t: ' ' }, { t: '●', c: 'var(--amber)' }, { t: ' ' }, { t: '●', c: 'var(--accent)' }])],
+  [indent, { t: `├${'─'.repeat(W)}┤`, cls: 'f' }],
+  [indent, ...screen([{ t: '$ ', cls: 'a' }, { t: 'ls ~/uses', cls: 'hi' }])],
+  ...dirRows.map((row) => [indent, ...screen(row)]),
+  [indent, ...screen([{ t: '$ ', cls: 'a' }, { t: '█', cls: 'cur' }])],
+  [indent, { t: `└${'─'.repeat(W)}┘`, cls: 'f' }],
+  [{ t: ' ' }, { t: `/${'='.repeat(W + 2)}\\`, cls: 'd' }],
+  [{ t: `/${'_'.repeat(W + 4)}\\`, cls: 'd' }],
+];
+
+const swatches = ['--coral', '--amber', '--accent', '--cyan', '--violet', '--hi', '--fg', '--dim'];
+---
+
+<BaseLayout title="Uses" description="The hardware, software and services I work with." windowTitle="~/uses">
+  <Section bordered={false}>
+    <Marquee slot="ornament" lines={BUILD_LINES} rows={4} />
+    <div class="stack" style="--gap: 28px">
+      <SectionHeading level={1} cmd="neofetch && tree ~/uses" title="uses" note="The tools behind the work. See also ./now." />
+
+      <!-- neofetch -->
+      <div class="fetch">
+        <div class="chrome" aria-hidden="true">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span>{who}: ~/uses — neofetch</span>
+        </div>
+        <div class="fetch-body">
+          <div class="art" aria-hidden="true">{art.map((line) => <span class="ln">{line.map((s) => (s.cls || s.c ? <span class={s.cls} style={s.c ? `color:${s.c}` : undefined}>{s.t}</span> : s.t))}</span>)}</div>
+
+          <div class="info">
+            <p class="who" style="--i:0">
+              <span>{site.prompt.user}</span>@<span>{site.prompt.host}</span>
+            </p>
+            <p class="rule" style="--i:1" aria-hidden="true">{'-'.repeat(who.length)}</p>
+            <dl class="sys">
+              {
+                sysRows.map((row, i) => (
+                  <div class="sys-row" style={`--i:${i + 2}`}>
+                    <dt>{row.key}</dt>
+                    <dd>{row.value}</dd>
+                  </div>
+                ))
+              }
+            </dl>
+            <p class="swatches" style={`--i:${sysRows.length + 2}`} aria-hidden="true">
+              {swatches.map((v) => <span style={`background:var(${v})`} />)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- tree, one panel per directory -->
+      <div class="dirs">
+        {
+          uses.map((group, gi) => (
+            <section class="panel reveal" id={slug(group.dir)} style={`--c:${group.color}`} aria-labelledby={`dir-${slug(group.dir)}`}>
+              <header class="phead">
+                <span class="perm" aria-hidden="true">
+                  drwxr-xr-x
+                </span>
+                <h2 class="dir" id={`dir-${slug(group.dir)}`}>
+                  {group.dir}
+                </h2>
+                <span class="count">
+                  {group.items.length} {group.items.length === 1 ? 'file' : 'files'}
+                </span>
+              </header>
+              <span class="ghost" aria-hidden="true">
+                {pad2(gi + 1)}
+              </span>
+              <ul class="tree">
+                {group.items.map((item) => (
+                  <li>
+                    <span class="node" aria-hidden="true" />
+                    <span class="name">{item.name}</span>
+                    <span class="note">{item.note}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        }
+
+        <!-- du: sizes at a glance, and a way to jump to each directory -->
+        <section class="panel du reveal" aria-labelledby="dir-du">
+          <header class="phead">
+            <span class="ps" aria-hidden="true">$</span>
+            <h2 class="dir" id="dir-du"><span class="sr-only">Summary: </span>du -sh ~/uses/*</h2>
+          </header>
+          <ul class="du-list">
+            {
+              uses.map((group) => (
+                <li>
+                  <a href={`#${slug(group.dir)}`} style={`--c:${group.color};--w:${(group.items.length / maxItems) * 100}%`}>
+                    <span class="n">{group.items.length}</span>
+                    <span class="bar" aria-hidden="true" />
+                    <span class="name">{group.dir}</span>
+                    <span class="arrow" aria-hidden="true">
+                      ↗
+                    </span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+          <p class="total">
+            <b>{fileCount}</b> total <span class="sep">·</span> {uses.length} directories, {fileCount} files
+          </p>
+          <p class="next">
+            <span class="ps" aria-hidden="true">$</span> cd <a href="/now/">../now</a><span class="cursor" aria-hidden="true"></span>
+          </p>
+        </section>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>
+
+<style>
+  /* ---------- neofetch window ---------- */
+  .fetch {
+    position: relative;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    box-shadow: 0 30px 70px -42px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .chrome {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bar);
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .dots i:nth-child(1) {
+    background: var(--coral);
+  }
+  .dots i:nth-child(2) {
+    background: var(--amber);
+  }
+  .dots i:nth-child(3) {
+    background: var(--accent);
+  }
+
+  .fetch-body {
+    display: grid;
+    grid-template-columns: auto minmax(0, max-content);
+    justify-content: center;
+    align-items: center;
+    gap: 32px clamp(32px, 6vw, 80px);
+    padding: clamp(24px, 4.5vw, 48px) clamp(18px, 4vw, 48px);
+    /* A soft phosphor glow behind the laptop. */
+    background: radial-gradient(42% 90% at 22% 50%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%);
+  }
+
+  .art {
+    font-family: var(--font-ascii);
+    font-size: 0.875rem;
+    line-height: 1.3;
+    white-space: pre;
+    color: var(--fg);
+  }
+  .ln {
+    display: block;
+  }
+  .art .f {
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+  .art .a {
+    color: var(--accent);
+  }
+  .art .hi {
+    color: var(--hi);
+  }
+  .art .d {
+    color: var(--dim);
+  }
+  .art .cur {
+    color: var(--accent);
+  }
+
+  .info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: 0.875rem;
+  }
+  .who {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--hi);
+  }
+  .who span {
+    color: var(--accent);
+  }
+  .rule {
+    margin-bottom: 8px;
+    color: var(--dim);
+    font-size: 1.0625rem;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+  }
+  .sys {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .sys-row {
+    display: grid;
+    grid-template-columns: 10ch minmax(0, 1fr);
+    gap: 12px;
+  }
+  .sys-row dt {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .sys-row dt::after {
+    content: ':';
+    color: var(--dim);
+    font-weight: 400;
+  }
+  .sys-row dd {
+    color: var(--fg);
+    overflow-wrap: anywhere;
+  }
+  .swatches {
+    display: flex;
+    margin-top: 16px;
+  }
+  .swatches span {
+    width: 28px;
+    height: 14px;
+  }
+
+  /* ---------- directory panels ---------- */
+  .dirs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  /* An odd one out at the end takes the whole row, so the grid never ends on a gap. */
+  .dirs > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .panel {
+    --c: var(--accent);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(90% 70% at 0% 0%, color-mix(in srgb, var(--c) 8%, transparent), transparent 70%),
+      var(--surface);
+    scroll-margin-top: 24px;
+    transition:
+      border-color 0.25s,
+      box-shadow 0.25s;
+  }
+  /* The directory's colour runs along the top edge and fades out. */
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: linear-gradient(90deg, var(--c), transparent 80%);
+  }
+  .panel:hover,
+  .panel:target {
+    border-color: color-mix(in srgb, var(--c) 45%, var(--line));
+    box-shadow: 0 28px 60px -44px color-mix(in srgb, var(--c) 75%, transparent);
+  }
+
+  .phead {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    border-bottom: 1px dashed var(--line);
+    font-size: 0.8125rem;
+  }
+  .perm {
+    color: var(--dim);
+  }
+  .dir {
+    margin-right: auto;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--c);
+  }
+  .count {
+    flex: none;
+    padding: 0 8px;
+    border: 1px solid color-mix(in srgb, var(--c) 30%, var(--line));
+    font-size: 0.71875rem;
+    line-height: 1.25rem;
+    color: var(--dim);
+  }
+
+  /* The panel's number, large and faint behind the tree. */
+  .ghost {
+    position: absolute;
+    right: 16px;
+    bottom: -0.16em;
+    z-index: -1;
+    font-size: clamp(4.75rem, 9vw, 7rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.06em;
+    color: var(--c);
+    opacity: 0.07;
+    pointer-events: none;
+    transition:
+      opacity 0.35s,
+      transform 0.35s;
+  }
+  .panel:hover .ghost {
+    opacity: 0.14;
+    transform: translateY(-4px);
+  }
+
+  /*
+   * The tree is drawn in CSS rather than with box-drawing glyphs, so every line is the same 1px weight
+   * and the trunk stays unbroken however long a note wraps.
+   *   li::before  the elbow: from the previous row (or the header) down and across to this node
+   *   li::after   the trunk continuing past this row to the next one (all but the last row)
+   */
+  .tree {
+    --pad: 20px;
+    --gap: 16px;
+    --x: 6px; /* trunk position */
+    --arm: 16px; /* elbow length */
+    --dot: 7px;
+    --tree: color-mix(in srgb, var(--c) 28%, var(--line));
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    margin: 0;
+    padding: var(--pad) 22px calc(var(--pad) + 4px);
+    list-style: none;
+    font-size: 0.90625rem;
+    line-height: 1.6;
+  }
+  .tree li {
+    position: relative;
+    padding-left: calc(var(--x) + var(--arm) + var(--dot) + 12px);
+  }
+  .tree li::before,
+  .tree li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: var(--x);
+    border-color: var(--tree);
+    transition: border-color 0.2s;
+  }
+  .tree li::before {
+    top: calc(-1 * var(--gap));
+    height: calc(var(--gap) + 0.5lh);
+    width: var(--arm);
+    border-left: 1px solid var(--tree);
+    border-bottom: 1px solid var(--tree);
+  }
+  .tree li:first-child::before {
+    top: calc(-1 * var(--pad));
+    height: calc(var(--pad) + 0.5lh);
+  }
+  .tree li:last-child::before {
+    border-bottom-left-radius: 8px;
+  }
+  .tree li:not(:last-child)::after {
+    top: 0.5lh;
+    bottom: 0;
+    border-left: 1px solid var(--tree);
+  }
+  .node {
+    position: absolute;
+    top: 0.5lh;
+    left: calc(var(--x) + var(--arm));
+    width: var(--dot);
+    height: var(--dot);
+    border: 1.5px solid var(--c);
+    border-radius: 50%;
+    background: var(--surface);
+    transform: translateY(-50%);
+    transition:
+      background-color 0.2s,
+      box-shadow 0.2s;
+  }
+  .tree .name {
+    display: block;
+    color: var(--hi);
+    font-weight: 700;
+    transition: color 0.2s;
+  }
+  .tree .note {
+    display: block;
+    max-width: 58ch;
+    color: var(--dim);
+    font-size: 0.8125rem;
+    text-wrap: pretty;
+  }
+
+  /* Hovering a row lights up its path from the trunk. */
+  .tree li:hover::before {
+    border-color: var(--c);
+  }
+  .tree li:hover .node {
+    background: var(--c);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent);
+  }
+  .tree li:hover .name {
+    color: var(--c);
+  }
+
+  /* ---------- du panel ---------- */
+  .du .phead {
+    gap: 10px;
+  }
+  .du .dir {
+    color: var(--hi);
+    font-size: 0.9375rem;
+  }
+  .ps {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .du-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 12px 10px 4px;
+    list-style: none;
+  }
+  .du-list a {
+    display: grid;
+    grid-template-columns: 3ch minmax(0, 1fr) 10ch auto;
+    align-items: center;
+    gap: 14px;
+    min-height: 44px;
+    padding: 0 12px;
+    color: var(--fg);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: background 0.2s;
+  }
+  .du-list .n {
+    color: var(--hi);
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  /* A segmented meter: a faint track with the directory's share filled in its colour. */
+  .bar {
+    position: relative;
+    height: 10px;
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--line) 80%, transparent) 0 5px, transparent 5px 7px);
+  }
+  .bar::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--w);
+    background: repeating-linear-gradient(90deg, var(--c) 0 5px, transparent 5px 7px);
+    transform-origin: 0 50%;
+  }
+  .du-list .name {
+    color: var(--c);
+  }
+  .du-list .arrow {
+    color: var(--dim);
+    transition:
+      transform 0.2s,
+      color 0.2s;
+  }
+  .du-list a:hover {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--c) 10%, transparent), transparent 85%);
+  }
+  .du-list a:hover .arrow {
+    color: var(--c);
+    transform: translate(2px, -2px);
+  }
+
+  .total,
+  .next {
+    padding: 0 22px;
+    font-size: 0.84375rem;
+    color: var(--dim);
+  }
+  .total {
+    margin: 8px 0 0;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    margin-inline: 22px;
+    padding-inline: 0;
+  }
+  .total b {
+    color: var(--hi);
+  }
+  .sep {
+    margin: 0 6px;
+    color: var(--line);
+  }
+  .next {
+    margin-top: auto;
+    padding-top: 14px;
+    padding-bottom: 20px;
+    color: var(--fg);
+  }
+
+  /* ---------- motion ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    /* neofetch prints its lines one after another. */
+    .who,
+    .rule,
+    .sys-row,
+    .swatches {
+      animation: fetch-in 0.4s ease-out calc(0.15s + var(--i) * 0.055s) both;
+    }
+    .art {
+      animation: art-in 0.6s ease-out both;
+    }
+    .art .cur {
+      animation: uses-blink 1.1s steps(1) infinite;
+    }
+  }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* The meters fill as the panel scrolls in. */
+      .bar::after {
+        animation: fill linear both;
+        animation-timeline: view();
+        animation-range: entry 20% cover 35%;
+      }
+    }
+  }
+  @keyframes fetch-in {
+    from {
+      opacity: 0;
+      transform: translateX(-6px);
+    }
+  }
+  @keyframes art-in {
+    from {
+      opacity: 0;
+      filter: blur(3px);
+    }
+  }
+  @keyframes uses-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes fill {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .panel,
+    .ghost,
+    .tree li::before,
+    .node,
+    .tree .name,
+    .du-list a,
+    .du-list .arrow {
+      transition: none;
+    }
+  }
+
+  /* ---------- responsive ---------- */
+  @media (min-width: 1024px) {
+    .art {
+      font-size: 0.96875rem;
+    }
+  }
+  @media (max-width: 799.98px) {
+    .dirs {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 719.98px) {
+    .fetch-body {
+      grid-template-columns: minmax(0, 1fr);
+      justify-content: stretch;
+      background: radial-gradient(80% 45% at 30% 22%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%);
+    }
+    .art {
+      font-size: 0.8125rem;
+    }
+  }
+  @media (max-width: 479.98px) {
+    .perm {
+      display: none;
+    }
+    .phead {
+      padding: 12px 14px;
+    }
+    .tree {
+      --pad: 16px;
+      --arm: 12px;
+      padding-inline: 14px;
+    }
+    .du-list {
+      padding-inline: 4px;
+    }
+    .du-list a {
+      grid-template-columns: 2ch minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 0 10px;
+    }
+    .du-list .arrow {
+      display: none;
+    }
+    .total {
+      margin-inline: 14px;
+    }
+    .next {
+      padding-inline: 14px;
+    }
+    .sys-row {
+      grid-template-columns: 9ch minmax(0, 1fr);
+      gap: 8px;
+    }
+    .info {
+      font-size: 0.8125rem;
+    }
+  }
+  @media (max-width: 411.98px) {
+    .art {
+      font-size: 0.71875rem;
+    }
+  }
+</style>

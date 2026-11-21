@@ -1,0 +1,133 @@
+---
+/**
+ * The article list for one language. Put extra controls (e.g. a search box) in the
+ * "tools" slot; the page that uses this component decides which features to combine.
+ */
+import Section from '@shared/ui/Section.astro';
+import SectionHeading from '@shared/ui/SectionHeading.astro';
+import Marquee from '@shared/ui/Marquee.astro';
+import { MARKDOWN_LINES } from '@shared/ui/ornaments';
+import { ui, type Lang } from '../i18n';
+import { formatDate, getAllPosts, readingMinutes } from '../lib/queries';
+import { writingIndexUrls } from '../lib/routes';
+import LangSwitch from './LangSwitch.astro';
+import PostList from './PostList.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang];
+const posts = await getAllPosts(lang);
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const stats = [
+  { value: pad(posts.length), label: posts.length === 1 ? t.post : t.posts, date: false },
+  { value: pad(posts.reduce((sum, post) => sum + readingMinutes(post.body), 0)), label: t.minRead, date: false },
+  { value: pad(new Set(posts.flatMap((post) => post.data.tags)).size), label: t.topicCount, date: false },
+  ...(posts[0] ? [{ value: formatDate(posts[0].data.date), label: t.updated, date: true }] : []),
+];
+---
+
+<Section bordered={false} narrow>
+  <Marquee slot="ornament" lines={MARKDOWN_LINES} rows={4} />
+  <div class="stack" style="--gap: 28px">
+    <div class="top">
+      <SectionHeading level={1} cmd="ls --sort=date" path="~/writing" title={t.title} note={t.description} />
+      <LangSwitch current={lang} urls={writingIndexUrls()} />
+    </div>
+    {
+      posts.length > 0 && (
+        <dl class="stats">
+          {stats.map((stat) => (
+            <div class:list={{ date: stat.date }}>
+              <dt>{stat.label}</dt>
+              <dd>{stat.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )
+    }
+    <slot name="tools" />
+    <PostList posts={posts} empty={t.empty} latest years level={2} />
+  </div>
+</Section>
+
+<style>
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 24px;
+  }
+  .top :global(.note) {
+    max-width: 52ch;
+    margin-top: 4px;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: var(--fg);
+  }
+
+  /* Small numbers strip: posts, minutes of reading, topics, last update. */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+    margin: 0;
+    border-block: 1px solid var(--line);
+  }
+  .stats > div {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    gap: 2px;
+    padding: 16px 20px;
+  }
+  .stats > div + div {
+    border-left: 1px dashed var(--line);
+  }
+  .stats dd {
+    font-size: clamp(1.5rem, 3.4vw, 2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--hi);
+    font-variant-numeric: tabular-nums;
+  }
+  .stats > div:first-child dd {
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+  .stats .date dd {
+    font-size: clamp(1.0625rem, 2.2vw, 1.25rem);
+    line-height: calc(1.1 * clamp(1.5rem, 3.4vw, 2rem));
+    letter-spacing: 0;
+    color: var(--amber);
+  }
+  .stats dt {
+    font-size: 0.71875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  /* Two by two on phones. */
+  @media (max-width: 559.98px) {
+    .stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .stats > div {
+      padding: 12px 14px;
+    }
+    .stats > div + div {
+      border-left: none;
+    }
+    .stats > div:nth-child(even) {
+      border-left: 1px dashed var(--line);
+    }
+    .stats > div:nth-child(n + 3) {
+      border-top: 1px dashed var(--line);
+    }
+  }
+</style>

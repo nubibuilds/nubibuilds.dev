@@ -1,0 +1,251 @@
+---
+/**
+ * The case study at a glance: the four highlights (problem → architecture → implementation
+ * → result) as linked steps, each jumping to its section of the write-up, then the metrics.
+ */
+import { ui } from '../i18n';
+import { workLang, type WorkEntry } from '../lib/queries';
+import Metrics from './Metrics.astro';
+
+interface Props {
+  entry: WorkEntry;
+  /** Rendered headings of the write-up; the n-th H2 is the target of the n-th step. */
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { entry, headings } = Astro.props;
+const { data } = entry;
+const t = ui[workLang(entry)];
+const sections = headings.filter((h) => h.depth === 2 && h.slug !== 'footnote-label');
+const steps = [
+  { label: t.problem, color: 'var(--coral)', text: data.highlights.problem },
+  { label: t.architecture, color: 'var(--cyan)', text: data.highlights.architecture },
+  { label: t.implementation, color: 'var(--violet)', text: data.highlights.implementation },
+  { label: t.result, color: 'var(--accent)', text: data.highlights.result },
+].map((step, i) => ({ ...step, href: sections[i] ? `#${sections[i].slug}` : undefined }));
+---
+
+<div class="overview">
+  <div class="ov-head">
+    <h2 class="ov-title">{t.overview}</h2>
+    <p class="dim">{t.overviewNote}</p>
+  </div>
+
+  <ol class="ov-flow">
+    {
+      steps.map((step, i) => (
+        <li class="ov-step reveal" style={`--c:${step.color};--i:${i}`}>
+          <span class="ov-num" aria-hidden="true">
+            {String(i + 1).padStart(2, '0')}
+          </span>
+          <p class="ov-label">
+            {step.href ? (
+              <a href={step.href}>
+                {step.label}
+                <span class="ov-go" aria-hidden="true">
+                  {t.readSection} ↓
+                </span>
+              </a>
+            ) : (
+              step.label
+            )}
+          </p>
+          <p class="ov-text">{step.text}</p>
+        </li>
+      ))
+    }
+  </ol>
+
+  {
+    data.metrics.length > 0 && (
+      <div class="ov-impact">
+        <h2 class="ov-title">{t.impact}</h2>
+        <Metrics metrics={data.metrics} />
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .overview {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .ov-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 24px;
+    font-size: 0.84375rem;
+  }
+  .ov-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--hi);
+  }
+
+  .ov-flow {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ov-step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 22px 22px 24px;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--c) 9%, transparent), transparent 60%),
+      var(--surface);
+    transition:
+      border-color 0.3s,
+      translate 0.3s,
+      box-shadow 0.3s;
+  }
+  /* Colour bar on top that fills the width on hover. */
+  .ov-step::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 36px;
+    height: 2px;
+    background: var(--c);
+    box-shadow: 0 0 14px var(--c);
+    transition: width 0.45s var(--ease-out);
+  }
+  /* Arrow to the next step. */
+  .ov-step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    top: 50%;
+    right: -14px;
+    z-index: 1;
+    translate: 0 -50%;
+    font-size: 0.8125rem;
+    color: var(--dim);
+  }
+  .ov-step:hover,
+  .ov-step:focus-within {
+    border-color: color-mix(in srgb, var(--c) 60%, var(--line));
+    translate: 0 -4px;
+    box-shadow: 0 24px 50px -30px color-mix(in srgb, var(--c) 70%, transparent);
+  }
+  .ov-step:hover::before,
+  .ov-step:focus-within::before {
+    width: calc(100% + 2px);
+  }
+  .ov-num {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    color: transparent;
+    -webkit-text-stroke: 1px color-mix(in srgb, var(--c) 75%, var(--line));
+    transition: color 0.3s;
+  }
+  .ov-step:hover .ov-num,
+  .ov-step:focus-within .ov-num {
+    color: var(--c);
+  }
+  .ov-label {
+    font-size: 0.78125rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c);
+  }
+  .ov-label::before {
+    content: '# ';
+    color: var(--dim);
+  }
+  .ov-label a {
+    color: inherit;
+    text-decoration: none;
+  }
+  /* The whole step is the link. */
+  .ov-label a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  /* Out of the flow, top right of the step, so it never wraps the label. */
+  .ov-go {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--dim);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .ov-step:hover .ov-go,
+  .ov-label a:focus-visible .ov-go {
+    opacity: 1;
+  }
+  .ov-text {
+    font-size: 0.875rem;
+    line-height: 1.65;
+    text-wrap: pretty;
+  }
+  .ov-impact {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  @media (max-width: 899.98px) {
+    .ov-flow {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ov-step::after {
+      display: none;
+    }
+  }
+  @media (max-width: 559.98px) {
+    .ov-flow {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ov-step {
+      padding: 18px;
+    }
+    .ov-num {
+      font-size: 2rem;
+    }
+    .ov-go {
+      top: 18px;
+      right: 18px;
+    }
+    .ov-go {
+      opacity: 1;
+    }
+  }
+  @media (hover: none) {
+    .ov-go {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ov-step,
+    .ov-step::before,
+    .ov-num,
+    .ov-go {
+      transition: none;
+    }
+    .ov-step:hover,
+    .ov-step:focus-within {
+      translate: none;
+    }
+  }
+</style>

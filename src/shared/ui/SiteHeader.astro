@@ -1,0 +1,195 @@
+---
+import { site } from '@shared/config/site';
+import { frameText, localizeHref } from '@shared/lib/i18n';
+
+interface Props {
+  /** Shown in the window title bar, e.g. "zsh" or "~/work". */
+  windowTitle?: string;
+  /** Language of the page; links to Work and Writing stay in it. */
+  lang?: string;
+}
+
+const { windowTitle = 'zsh', lang } = Astro.props;
+const t = frameText(lang);
+// Translated pages live under /id/…; highlight the same tab as their English twin.
+// Compared without the trailing slash, so /work and /work/ both count (the dev server serves either).
+const trim = (value: string) => value.replace(/\/+$/, '') || '/';
+const path = trim(Astro.url.pathname.replace(/^\/id(?=\/)/, ''));
+const isActive = (href: string) => {
+  if (href.includes('#')) return false;
+  const target = trim(href);
+  return target === '/' ? path === '/' : path === target || path.startsWith(`${target}/`);
+};
+---
+
+<header class="site-header">
+  <div class="titlebar">
+    <span class="spacer"></span>
+    <span class="title">{site.name.toLowerCase()} — {windowTitle}</span>
+    <div class="tools">
+      <!-- Shown by the terminal script; stays hidden when there is no terminal on the page. -->
+      <button type="button" class="tool" data-terminal-open hidden aria-label={t.openTerminal} title={t.terminalShortcut}>{'[ >_ ]'}</button>
+      <button type="button" class="tool" data-theme-toggle aria-label={t.switchTheme} data-label-dark={t.themeIsDark} data-label-light={t.themeIsLight}>[ theme ]</button>
+    </div>
+  </div>
+  <nav class="tabs" aria-label={t.primaryNav}>
+    {
+      site.nav.map((item) => (
+        <a href={localizeHref(item.href, lang)} class:list={['tab', { active: isActive(item.href) }]} aria-current={isActive(item.href) ? 'page' : undefined}>
+          {item.label}
+        </a>
+      ))
+    }
+  </nav>
+</header>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+  const root = document.documentElement;
+  const systemLight = window.matchMedia('(prefers-color-scheme: light)');
+  const current = () => root.dataset.theme ?? (systemLight.matches ? 'light' : 'dark');
+
+  // The button's name says which theme is active and what pressing it does.
+  const label = () => {
+    const text = current() === 'dark' ? button?.dataset.labelDark : button?.dataset.labelLight;
+    if (button && text) button.setAttribute('aria-label', text);
+  };
+  label();
+  // Without a saved choice the page follows the system, so its name does too.
+  systemLight.addEventListener('change', label);
+  // The terminal's `theme` command switches the theme as well.
+  new MutationObserver(label).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+  button?.addEventListener('click', () => {
+    const next = current() === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      // Storage can be blocked; the choice then lasts for this page only.
+    }
+  });
+</script>
+
+<style>
+  .site-header {
+    position: relative;
+    background: var(--bar);
+    border-bottom: 1px solid var(--line);
+  }
+  .titlebar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    height: 44px;
+    padding: 0 8px 0 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.8125rem;
+    color: var(--dim);
+  }
+  .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tools {
+    display: flex;
+    justify-self: end;
+  }
+  .tool {
+    height: 44px;
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    color: var(--dim);
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  /* The bar is exactly as tall as the button: keep the focus ring inside so it is not cut off. */
+  .tool:focus-visible {
+    outline-offset: -2px;
+  }
+  .tool[hidden] {
+    display: none;
+  }
+  .tool:hover {
+    color: var(--accent);
+  }
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 4px;
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: 0 12px;
+  }
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 14px;
+    border-bottom: 2px solid transparent;
+    color: var(--dim);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab:hover {
+    color: var(--accent);
+    background: var(--hover);
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  /* High contrast: a transparent border is repainted in a system colour, which would mark every tab. */
+  @media (forced-colors: active) {
+    .tab {
+      border-bottom-color: Canvas;
+    }
+    .tab.active {
+      border-bottom-color: Highlight;
+    }
+  }
+  /* Narrow screens: title on the left so the two buttons fit beside it. */
+  @media (max-width: 559.98px) {
+    .titlebar {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .spacer {
+      display: none;
+    }
+  }
+  /* Phones: keep the tabs on one swipeable row instead of wrapping "./contact" onto its own line. */
+  @media (max-width: 559.98px) {
+    .tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      gap: 0;
+      padding: 0 6px;
+    }
+    .tabs::-webkit-scrollbar {
+      display: none;
+    }
+    .tab {
+      flex: 0 0 auto;
+      padding: 0 9px;
+      font-size: 0.8125rem;
+    }
+  }
+  /* Small phones: tighter still, so all five tabs fit without scrolling down to 340px. */
+  @media (max-width: 411.98px) {
+    .tab {
+      padding: 0 6px;
+      font-size: 0.75rem;
+    }
+  }
+  /* Narrower than that the row scrolls: fade the right edge to show there is more. */
+  @media (max-width: 339.98px) {
+    .tabs {
+      mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    }
+  }
+</style>

@@ -1,0 +1,16 @@
+---
+/** The shared language switch, with the writing pages' interface text. */
+import SharedLangSwitch from '@shared/ui/LangSwitch.astro';
+import type { Lang, LangUrls } from '@shared/lib/i18n';
+import { ui } from '../i18n';
+
+interface Props {
+  current: Lang;
+  urls: LangUrls;
+}
+
+const { current, urls } = Astro.props;
+const t = ui[current];
+---
+
+<SharedLangSwitch current={current} urls={urls} label={t.switchLabel} notTranslated={t.notTranslated} />

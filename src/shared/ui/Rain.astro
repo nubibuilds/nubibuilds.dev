@@ -1,0 +1,77 @@
+---
+/**
+ * Vertical "matrix rain" ornament. Each column is a 1ch-wide span whose text
+ * comes from a data attribute and is drawn by CSS, so it adds no real content
+ * to the page. Must be placed in a <Section> "ornament" slot.
+ */
+interface Props {
+  /** Strings to fall; columns cycle through them. */
+  texts: readonly string[];
+  /** Number of columns spread across the section. */
+  count?: number;
+  /** Only draw four columns hugging the left and right edges. */
+  edge?: boolean;
+}
+
+const { texts, count = 12, edge = false } = Astro.props;
+const edges = [2, 5, 95, 98];
+const total = edge ? edges.length : count;
+
+const columns = Array.from({ length: total }, (_, i) => ({
+  text: texts[i % texts.length],
+  left: edge ? edges[i] : 3 + (i * 94) / Math.max(total - 1, 1),
+  duration: 30 + ((i * 37) % 34),
+  delay: -((i * 13) % 40),
+  opacity: [1, 0.5, 1, 0.6, 0.4][i % 5],
+}));
+---
+
+{
+  columns.map((c) => (
+    <span
+      class:list={['rain', { edge }]}
+      data-t={c.text}
+      style={`left:${c.left.toFixed(1)}%;animation-duration:${c.duration}s;animation-delay:${c.delay}s;opacity:${c.opacity}`}
+    ></span>
+  ))
+}
+
+<style>
+  .rain {
+    position: absolute;
+    top: 0;
+    width: 1ch;
+    font-size: 14px;
+    line-height: 1.25;
+    word-break: break-all;
+    animation: fall 40s linear infinite;
+  }
+  /* Two copies, shifted by half: a seamless loop. */
+  .rain::before {
+    content: attr(data-t) attr(data-t);
+  }
+  @keyframes fall {
+    from {
+      transform: translateY(-50%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @media (max-width: 719.98px) {
+    .rain:nth-child(even) {
+      display: none;
+    }
+  }
+  @media (max-width: 411.98px) {
+    .rain:nth-child(3n),
+    .rain.edge {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rain {
+      animation: none;
+    }
+  }
+</style>

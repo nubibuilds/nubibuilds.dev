@@ -1,0 +1,150 @@
+---
+/** Large link to the next case study, with its generated ASCII art fading in behind it. */
+import { ui } from '../i18n';
+import { coverArt } from '../lib/cover';
+import { workLang, workSlug, workUrl, type WorkEntry } from '../lib/queries';
+
+interface Props {
+  next: WorkEntry;
+}
+
+const { next } = Astro.props;
+const t = ui[workLang(next)];
+const slug = workSlug(next);
+---
+
+<a class="next-case" href={workUrl(next)}>
+  <pre class="nc-art" aria-hidden="true">{coverArt(slug, 40, 6)}</pre>
+  <span class="nc-kicker"><span class="nc-prompt">$</span> cat {slug}/case-study.md{' '}<span class="dim">— {t.nextCase}</span></span>
+  <span class="nc-title">{next.data.title}<span class="nc-slash" aria-hidden="true">/</span></span>
+  <span class="nc-summary">{next.data.summary}</span>
+  <span class="nc-arrow" aria-hidden="true">→</span>
+</a>
+
+<style>
+  .next-case {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 40px 120px 40px 40px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(80% 120% at 100% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+      var(--surface);
+    color: var(--fg);
+    text-decoration: none;
+    transition:
+      border-color 0.3s,
+      box-shadow 0.3s;
+  }
+  .next-case:hover,
+  .next-case:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 30px 70px -40px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+  .nc-art {
+    position: absolute;
+    right: -10px;
+    bottom: 0;
+    margin: 0;
+    font-family: var(--font-ascii);
+    font-size: 0.875rem;
+    line-height: 1;
+    white-space: pre;
+    background: linear-gradient(to top, var(--accent), var(--cyan));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    opacity: 0.18;
+    transform: scaleY(1.8);
+    transform-origin: 50% 100%;
+    mask-image: linear-gradient(to left, #000 40%, transparent);
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  .next-case:hover .nc-art {
+    opacity: 0.4;
+  }
+  .nc-kicker {
+    position: relative;
+    font-size: 0.8125rem;
+    color: var(--fg);
+  }
+  .nc-prompt {
+    color: var(--accent);
+  }
+  .nc-title {
+    position: relative;
+    font-size: clamp(1.625rem, 4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--hi);
+    overflow-wrap: anywhere;
+    transition: color 0.25s;
+  }
+  .nc-slash {
+    color: var(--accent);
+  }
+  .next-case:hover .nc-title {
+    color: var(--accent);
+  }
+  .nc-summary {
+    position: relative;
+    max-width: 56ch;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .nc-arrow {
+    position: absolute;
+    top: 50%;
+    right: 40px;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    translate: 0 -50%;
+    border: 1px solid var(--line);
+    font-size: 1.375rem;
+    color: var(--accent);
+    background: var(--bg);
+    transition:
+      background 0.25s,
+      color 0.25s,
+      border-color 0.25s,
+      transform 0.25s;
+  }
+  .next-case:hover .nc-arrow {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    transform: translateX(6px);
+  }
+  @media (max-width: 599.98px) {
+    .next-case {
+      padding: 24px 20px 88px;
+    }
+    .nc-arrow {
+      top: auto;
+      bottom: 20px;
+      right: auto;
+      left: 20px;
+      width: 48px;
+      height: 48px;
+      translate: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .next-case,
+    .nc-art,
+    .nc-title,
+    .nc-arrow {
+      transition: none;
+    }
+    .next-case:hover .nc-arrow {
+      transform: none;
+    }
+  }
+</style>

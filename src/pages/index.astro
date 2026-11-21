@@ -1,0 +1,96 @@
+---
+import BaseLayout from '@app/SiteLayout.astro';
+import Section from '@shared/ui/Section.astro';
+import SectionHeading from '@shared/ui/SectionHeading.astro';
+import Prompt from '@shared/ui/Prompt.astro';
+import Rain from '@shared/ui/Rain.astro';
+import Marquee from '@shared/ui/Marquee.astro';
+import { BINARY, BUILD_LINES, CODE_LINES, MARKDOWN_LINES, NETWORK_LINES, WORDS } from '@shared/ui/ornaments';
+import Hero from '@features/home/components/Hero.astro';
+import Principles from '@features/about/components/Principles.astro';
+import LoopDiagram from '@features/about/components/LoopDiagram.astro';
+import { story } from '@features/about/data/about';
+import WorkCard from '@features/work/components/WorkCard.astro';
+import Showcase from '@features/work/components/Showcase.astro';
+import { getAllWork, pickFeatured } from '@features/work/lib/queries';
+import PostList from '@features/writing/components/PostList.astro';
+import { getAllPosts } from '@features/writing/lib/queries';
+import ContactPanel from '@features/contact/components/ContactPanel.astro';
+
+const allWork = await getAllWork('en');
+const work = pickFeatured(allWork);
+const posts = (await getAllPosts('en')).slice(0, 3);
+---
+
+<BaseLayout>
+  <Section bordered={false}>
+    <Rain slot="ornament" texts={BINARY} edge />
+    <Hero />
+  </Section>
+
+  <Section>
+    <Marquee slot="ornament" lines={CODE_LINES} rows={4} />
+    <div class="stack">
+      <Prompt cmd="cat principles.md" />
+      <h2 class="sr-only">Principles</h2>
+      <Principles />
+    </div>
+  </Section>
+
+  <Section id="work">
+    <Marquee slot="ornament" lines={BUILD_LINES} rows={4} />
+    <div class="stack" style="--gap: 28px">
+      <SectionHeading
+        cmd="ls -la ./work"
+        title="work"
+        note={`total ${allWork.length} — each one: problem → architecture → implementation → result`}
+      />
+      <div class="work-list">
+        {work.map((entry, index) => <WorkCard entry={entry} index={index} />)}
+      </div>
+      <Showcase />
+      {allWork.length > work.length && <a class="more-link" href="/work/">ls ./work --all →</a>}
+    </div>
+  </Section>
+
+  <Section id="about">
+    <Rain slot="ornament" texts={WORDS} count={6} />
+    <div class="about">
+      <div class="stack" style="--gap: 14px">
+        <SectionHeading cmd="cat about.txt" title="about" />
+        <p>{story[0]}</p>
+        <a class="more-link" href="/about/">less about.txt →</a>
+      </div>
+      <LoopDiagram />
+    </div>
+  </Section>
+
+  <Section id="writing">
+    <Marquee slot="ornament" lines={MARKDOWN_LINES} rows={3} />
+    <div class="stack">
+      <SectionHeading cmd="ls ./writing --sort=date" title="writing" />
+      <PostList posts={posts} latest />
+      <a class="more-link" href="/writing/">ls ./writing --all →</a>
+    </div>
+  </Section>
+
+  <Section id="contact">
+    <Marquee slot="ornament" lines={NETWORK_LINES} rows={3} />
+    <div class="stack">
+      <SectionHeading cmd="./contact --say-hello" title="contact" />
+      <ContactPanel />
+    </div>
+  </Section>
+</BaseLayout>
+
+<style>
+  .about {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
+    gap: 32px 56px;
+    align-items: center;
+  }
+  .more-link {
+    align-self: flex-start;
+  }
+</style>

@@ -1,0 +1,101 @@
+---
+/** The NUBI / BUILDS block-letter logo. Stacks into two rows on narrow containers. */
+const NUBI = `███╗   ██╗██╗   ██╗██████╗ ██╗
+████╗  ██║██║   ██║██╔══██╗██║
+██╔██╗ ██║██║   ██║██████╔╝██║
+██║╚██╗██║██║   ██║██╔══██╗██║
+██║ ╚████║╚██████╔╝██████╔╝██║
+╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚═╝`;
+
+const BUILDS = `██████╗ ██╗   ██╗██╗██╗     ██████╗ ███████╗
+██╔══██╗██║   ██║██║██║     ██╔══██╗██╔════╝
+██████╔╝██║   ██║██║██║     ██║  ██║███████╗
+██╔══██╗██║   ██║██║██║     ██║  ██║╚════██║
+██████╔╝╚██████╔╝██║███████╗██████╔╝███████║
+╚═════╝  ╚═════╝ ╚═╝╚══════╝╚═════╝ ╚══════╝`;
+---
+
+<div class="logo">
+  <div class="row" role="img" aria-label="NubiBuilds">
+    <pre class="art nubi" aria-hidden="true">{NUBI}</pre>
+    <pre class="art builds" aria-hidden="true">{BUILDS}</pre>
+  </div>
+</div>
+
+<style>
+  .logo {
+    container: logo / inline-size;
+    padding: 8px 0 4px;
+    overflow-x: auto;
+  }
+  .row {
+    display: flex;
+    align-items: flex-start;
+  }
+  .row {
+    filter: var(--glow-drop);
+  }
+  .art {
+    font-family: var(--font-ascii);
+    font-size: min(22px, 2.15cqw);
+    line-height: 1.2;
+    white-space: pre;
+  }
+  /* Solid colours first; where text clipping works, a gradient with a slow light sweep. */
+  .nubi {
+    color: var(--accent);
+  }
+  .builds {
+    color: var(--hi);
+  }
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    .art {
+      background-size: 300% 100%;
+      background-position: 100% 0;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nubi {
+      background-image: linear-gradient(
+        100deg,
+        var(--accent) 0 40%,
+        color-mix(in srgb, var(--accent) 45%, var(--hi)) 48%,
+        var(--accent) 56% 100%
+      );
+    }
+    .builds {
+      background-image: linear-gradient(
+        100deg,
+        var(--hi) 0 40%,
+        color-mix(in srgb, var(--hi) 35%, var(--accent)) 48%,
+        var(--hi) 56% 100%
+      );
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .art {
+        animation: sweep 7s ease-in-out 0.6s infinite;
+      }
+      .builds {
+        animation-delay: 0.9s;
+      }
+    }
+  }
+  @keyframes sweep {
+    0% {
+      background-position: 100% 0;
+    }
+    45%,
+    100% {
+      background-position: 0 0;
+    }
+  }
+  @container logo (max-width: 620px) {
+    .row {
+      flex-direction: column;
+    }
+    .art {
+      font-size: min(18px, 3.6cqw);
+    }
+  }
+</style>

@@ -1,0 +1,784 @@
+---
+/**
+ * Article list. With `latest`, the newest post opens the list as a large card framed as an
+ * editor window; the rest follow on a timeline, optionally grouped by year.
+ */
+import { transitionName } from '@shared/lib/vt';
+import { DEFAULT_LANG, ui } from '../i18n';
+import { formatDate, postLang, postSlug, postUrl, readingMinutes, wordCount, type PostEntry } from '../lib/queries';
+
+interface Props {
+  posts: PostEntry[];
+  /** Shown when the list is empty. */
+  empty?: string;
+  /** Show the first (newest) post as the large featured card. */
+  latest?: boolean;
+  /** Group the timeline by year, with the year marked on the rail. */
+  years?: boolean;
+  /** Heading level for post titles: 2 when the list sits right under the page's h1. */
+  level?: 2 | 3;
+}
+
+const { posts, empty = 'total 0 — nothing published yet.', latest = false, years = false, level = 3 } = Astro.props;
+const Title = level === 2 ? 'h2' : 'h3';
+const t = ui[posts[0] ? postLang(posts[0]) : DEFAULT_LANG];
+
+const featured = latest ? posts[0] : undefined;
+const rest = latest ? posts.slice(1) : posts;
+
+// Consecutive posts from the same year share a group (posts arrive newest first).
+const groups: { year?: number; posts: PostEntry[] }[] = [];
+for (const post of rest) {
+  const year = years ? post.data.date.getUTCFullYear() : undefined;
+  const last = groups.at(-1);
+  if (last && last.year === year) last.posts.push(post);
+  else groups.push({ year, posts: [post] });
+}
+
+// Line numbers for the editor gutter; the card clips whatever it does not need.
+const gutter = Array.from({ length: 24 }, (_, i) => i + 1);
+---
+
+{
+  posts.length === 0 ? (
+    <p class="dim">{empty}</p>
+  ) : (
+    // `rows` / `row` / `title` are hooks for the e2e tests; the look is all `.feature` and `.timeline`.
+    <div class="post-list">
+      {featured && (
+        <ul class="rows feature">
+          <li>
+            <a class="row" href={postUrl(featured)}>
+              <span class="chrome" aria-hidden="true">
+                <span class="dots">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span class="file">~/writing/{postSlug(featured)}.md</span>
+                <span class="badge">{t.latest}</span>
+              </span>
+              <span class="editor">
+                <span class="gutter" aria-hidden="true">
+                  {gutter.map((n) => (
+                    <span>{n}</span>
+                  ))}
+                </span>
+                <span class="body">
+                  <span class="fm">
+                    <span class="fence" aria-hidden="true">
+                      ---
+                    </span>
+                    <span class="fm-line">
+                      <span class="k">{t.date}:</span> <time datetime={featured.data.date.toISOString()}>{formatDate(featured.data.date)}</time>
+                    </span>
+                    <span class="fm-line">
+                      <span class="k">{t.read}:</span> {readingMinutes(featured.body)} {t.min}
+                      <span class="sep" aria-hidden="true">
+                        ·
+                      </span>
+                      <span class="k">{t.words}:</span> {wordCount(featured.body)}
+                    </span>
+                    <span class="fence" aria-hidden="true">
+                      ---
+                    </span>
+                  </span>
+                  <Title class="title" style={`view-transition-name:${transitionName('post', featured.id)}`}>
+                    {featured.data.title}
+                    {featured.data.draft && (
+                      <span class="draft-badge" title="Draft: shown only in pnpm dev, left out of the build">
+                        [draft]
+                      </span>
+                    )}
+                  </Title>
+                  <span class="summary">{featured.data.summary}</span>
+                  {featured.data.tags.length > 0 && (
+                    <span class="tags">
+                      {featured.data.tags.slice(0, 5).map((tag) => (
+                        <span>#{tag}</span>
+                      ))}
+                    </span>
+                  )}
+                  <span class="pl-cta" aria-hidden="true">
+                    <span class="sigil">$</span> less {postSlug(featured)}.md <span class="arrow">→</span>
+                  </span>
+                </span>
+              </span>
+              <span class="glyph" aria-hidden="true">
+                #
+              </span>
+              <span class="spot" aria-hidden="true" />
+            </a>
+          </li>
+        </ul>
+      )}
+
+      {groups.length > 0 && (
+        <div class="timeline">
+          {groups.map((group) => (
+            <div class="group">
+              {group.year !== undefined && (
+                <p class="year">
+                  <span class="y">{group.year}</span>
+                  <span class="count">
+                    {group.posts.length} {group.posts.length === 1 ? t.post : t.posts}
+                  </span>
+                </p>
+              )}
+              <ul class="rows posts" aria-label={group.year !== undefined ? String(group.year) : undefined}>
+                {group.posts.map((post) => (
+                  <li>
+                    <a class="row" href={postUrl(post)}>
+                      <p class="meta">
+                        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+                        <span class="read">
+                          {readingMinutes(post.body)} {t.min}
+                        </span>
+                      </p>
+                      <span class="node" aria-hidden="true" />
+                      <div class="main">
+                        <Title class="title" style={`view-transition-name:${transitionName('post', post.id)}`}>
+                          {post.data.title}
+                          {post.data.draft && (
+                            <span class="draft-badge" title="Draft: shown only in pnpm dev, left out of the build">
+                              [draft]
+                            </span>
+                          )}
+                        </Title>
+                        <p class="summary">{post.data.summary}</p>
+                        {post.data.tags.length > 0 && (
+                          <p class="tags">
+                            {post.data.tags.slice(0, 4).map((tag) => (
+                              <span>#{tag}</span>
+                            ))}
+                          </p>
+                        )}
+                      </div>
+                      <span class="go" aria-hidden="true">
+                        →
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+<style>
+  .post-list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(36px, 6vw, 56px);
+  }
+
+  /* Both lists drop the boxed table look of the global `.rows`. */
+  .rows.feature,
+  .rows.posts {
+    border: none;
+    background: none;
+  }
+  .rows.posts > li + li {
+    border-top: none;
+  }
+
+  /* ================= featured: the newest post as an open Markdown file ================= */
+  .feature .row {
+    --mx: 78%;
+    --my: 10%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    /* The global `.rows .row` wraps; a wrapping column would size the card to its widest line. */
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 55%),
+      linear-gradient(color-mix(in srgb, var(--line) 40%, transparent) 1px, transparent 1px) 0 0 / 100% 24px,
+      var(--bg);
+    color: var(--fg);
+    text-decoration: none;
+    box-shadow: 0 30px 70px -44px color-mix(in srgb, var(--accent) 45%, transparent);
+    transition:
+      border-color 0.3s,
+      box-shadow 0.3s,
+      translate 0.35s var(--ease-out);
+  }
+  .rows.feature a.row:hover {
+    background:
+      radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 55%),
+      linear-gradient(color-mix(in srgb, var(--line) 40%, transparent) 1px, transparent 1px) 0 0 / 100% 24px,
+      var(--bg);
+  }
+  .feature .row:hover,
+  .feature .row:focus-visible {
+    border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+    box-shadow: 0 40px 90px -40px color-mix(in srgb, var(--accent) 60%, transparent);
+    translate: 0 -4px;
+  }
+
+  /* Window bar. */
+  .chrome {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bar);
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--line);
+    transition: background 0.3s;
+  }
+  .row:hover .dots i:nth-child(1) {
+    background: var(--coral);
+  }
+  .row:hover .dots i:nth-child(2) {
+    background: var(--amber);
+  }
+  .row:hover .dots i:nth-child(3) {
+    background: var(--accent);
+  }
+  .file {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 8px;
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    font-size: 0.65625rem;
+    line-height: 1.1875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  /* Gutter with line numbers + the file's content. */
+  .editor {
+    --gw: 52px;
+    position: relative;
+    z-index: 1;
+    display: block;
+    padding-left: var(--gw);
+  }
+  .gutter {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: var(--gw);
+    overflow: hidden;
+    padding: 22px 14px 0 0;
+    border-right: 1px solid var(--line);
+    font-size: 0.75rem;
+    line-height: 1.5rem;
+    text-align: right;
+    color: color-mix(in srgb, var(--dim) 55%, transparent);
+    user-select: none;
+    mask-image: linear-gradient(#000 calc(100% - 72px), transparent);
+  }
+  /* The title's line number lights up on hover, as the cursor line would. */
+  .gutter span:nth-child(6) {
+    transition: color 0.3s;
+  }
+  .row:hover .gutter span:nth-child(6) {
+    color: var(--accent);
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 22px clamp(20px, 4vw, 44px) clamp(28px, 4vw, 40px) 22px;
+  }
+  .fm {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8125rem;
+    line-height: 1.5rem;
+    color: var(--fg);
+  }
+  .fence {
+    color: var(--dim);
+  }
+  .k {
+    color: var(--violet);
+  }
+  .fm time {
+    color: var(--amber);
+  }
+  .sep {
+    margin-inline: 8px;
+    color: var(--dim);
+  }
+  .feature .title {
+    max-width: 26ch;
+    font-size: clamp(1.625rem, 4.4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -0.025em;
+    color: var(--hi);
+    text-wrap: balance;
+    transition: color 0.3s;
+  }
+  .feature .title::before {
+    content: '# ';
+    content: '# ' / '';
+    color: var(--accent);
+  }
+  .feature .row:hover .title {
+    color: var(--accent);
+  }
+  .feature .summary {
+    max-width: 58ch;
+    font-size: 0.96875rem;
+    line-height: 1.7;
+    color: var(--fg);
+    text-wrap: pretty;
+  }
+  .feature .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-size: 0.78125rem;
+    color: var(--violet);
+  }
+  /* Looks like a button but is decoration inside the card's link (named apart from the global `.cta`). */
+  .pl-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-top: 8px;
+    font-weight: 700;
+    padding: 0 18px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    font-size: 0.875rem;
+    color: var(--fg);
+    transition:
+      background 0.25s,
+      border-color 0.25s,
+      color 0.25s,
+      box-shadow 0.25s;
+  }
+  .sigil {
+    color: var(--accent);
+  }
+  .pl-cta .arrow {
+    display: inline-block;
+    transition: transform 0.25s;
+  }
+  .feature .row:hover .pl-cta,
+  .feature .row:focus-visible .pl-cta {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow: var(--glow);
+  }
+  .feature .row:hover .sigil,
+  .feature .row:focus-visible .sigil,
+  .feature .row:hover .pl-cta .arrow,
+  .feature .row:focus-visible .pl-cta .arrow {
+    color: inherit;
+  }
+  .feature .row:hover .pl-cta .arrow {
+    transform: translateX(4px);
+  }
+
+  /* A giant outlined heading mark behind the text. */
+  .glyph {
+    position: absolute;
+    right: clamp(-28px, -2vw, -8px);
+    bottom: clamp(-80px, -8vw, -40px);
+    font-size: clamp(13.75rem, 34vw, 25rem);
+    font-weight: 700;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1.5px color-mix(in srgb, var(--accent) 22%, transparent);
+    pointer-events: none;
+    transition:
+      -webkit-text-stroke-color 0.4s,
+      text-shadow 0.4s,
+      transform 0.6s var(--ease-out);
+  }
+  .feature .row:hover .glyph {
+    -webkit-text-stroke-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    text-shadow: 0 0 40px color-mix(in srgb, var(--accent) 25%, transparent);
+    transform: rotate(-6deg) translateY(-8px);
+  }
+  .spot {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(520px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .feature .row:hover .spot {
+    opacity: 1;
+  }
+
+  /* ================= timeline: every other post ================= */
+  .timeline {
+    --pad: 18px;
+    --date: 112px;
+    --rail: 22px;
+    --gap: 24px;
+    /* Centre of the rail, from the list's left edge. */
+    --rail-x: calc(var(--pad) + var(--date) + var(--gap) + var(--rail) / 2);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-inline: calc(-1 * var(--pad));
+  }
+  /* The rail itself, fading out at both ends. */
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: var(--rail-x);
+    width: 1px;
+    background: linear-gradient(transparent, var(--line) 28px, var(--line) calc(100% - 48px), transparent);
+  }
+
+  .year {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--date) var(--rail) auto;
+    align-items: center;
+    gap: var(--gap);
+    padding: 6px var(--pad) 4px;
+  }
+  .y {
+    justify-self: end;
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: transparent;
+    -webkit-text-stroke: 1px color-mix(in srgb, var(--accent) 70%, var(--line));
+  }
+  /* Square marker on the rail for the year. */
+  .year::after {
+    content: '';
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid var(--accent);
+    background: var(--bg);
+    rotate: 45deg;
+  }
+  .count {
+    grid-column: 3;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .rows.posts .row {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--date) var(--rail) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 6px var(--gap);
+    min-height: 0;
+    padding: 22px var(--pad);
+    color: var(--fg);
+    text-decoration: none;
+    transition: background 0.3s;
+  }
+  .rows.posts a.row:hover {
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 6%, transparent) 30%, transparent 85%);
+  }
+
+  .meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    padding-top: 3px;
+    font-size: 0.78125rem;
+    letter-spacing: 0.02em;
+    color: var(--dim);
+    text-align: right;
+  }
+  .meta time {
+    color: var(--fg);
+    transition: color 0.25s;
+  }
+  .rows.posts .row:hover .meta time {
+    color: var(--amber);
+  }
+
+  /* Node on the rail, with a lit segment of rail beside the hovered post. */
+  .node {
+    position: relative;
+    align-self: stretch;
+  }
+  .node::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    z-index: 1;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid color-mix(in srgb, var(--accent) 60%, var(--line));
+    border-radius: 50%;
+    background: var(--bg);
+    translate: -50% 0;
+    transition:
+      background 0.3s,
+      border-color 0.3s,
+      box-shadow 0.3s,
+      scale 0.3s;
+  }
+  .node::after {
+    content: '';
+    position: absolute;
+    top: -22px;
+    bottom: -22px;
+    left: 50%;
+    width: 1px;
+    background: linear-gradient(transparent, var(--accent) 30%, var(--accent) 70%, transparent);
+    opacity: 0;
+    transform: scaleY(0.2);
+    transition:
+      opacity 0.35s,
+      transform 0.45s var(--ease-out);
+  }
+  .rows.posts .row:hover .node::before,
+  .rows.posts .row:focus-visible .node::before {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 70%, transparent);
+    scale: 1.15;
+  }
+  .rows.posts .row:hover .node::after,
+  .rows.posts .row:focus-visible .node::after {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    transition: translate 0.35s var(--ease-out);
+  }
+  .rows.posts .row:hover .main {
+    translate: 6px 0;
+  }
+  .posts .title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--hi);
+    text-wrap: balance;
+    transition: color 0.25s;
+  }
+  .rows.posts .row:hover .title {
+    color: var(--accent);
+  }
+  .posts .summary {
+    display: -webkit-box;
+    max-width: 62ch;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: var(--dim);
+  }
+  .posts .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 2px;
+    font-size: 0.75rem;
+    color: var(--violet);
+  }
+
+  .go {
+    display: grid;
+    place-items: center;
+    align-self: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--line);
+    color: var(--dim);
+    opacity: 0.6;
+    transition:
+      background 0.25s,
+      border-color 0.25s,
+      color 0.25s,
+      opacity 0.25s,
+      transform 0.25s;
+  }
+  .rows.posts .row:hover .go,
+  .rows.posts .row:focus-visible .go {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    opacity: 1;
+    transform: translateX(4px);
+    box-shadow: var(--glow);
+  }
+
+  /* ================= narrow screens ================= */
+  /* Timeline: the rail moves to the left edge; date and reading time sit above the title. */
+  @media (max-width: 639.98px) {
+    .timeline {
+      --pad: 14px;
+      --rail: 14px;
+      --gap: 16px;
+      --rail-x: calc(var(--pad) + var(--rail) / 2);
+    }
+    .year {
+      grid-template-columns: var(--rail) auto auto;
+      justify-content: start;
+    }
+    .year::after {
+      grid-column: 1;
+    }
+    .y {
+      justify-self: start;
+      grid-column: 2;
+      grid-row: 1;
+      font-size: 1.625rem;
+    }
+    .count {
+      grid-column: 3;
+    }
+    .rows.posts .row {
+      grid-template-columns: var(--rail) minmax(0, 1fr);
+      gap: 8px var(--gap);
+      padding: 18px var(--pad);
+    }
+    .node {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
+    .meta {
+      grid-column: 2;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      padding-top: 0;
+      text-align: left;
+    }
+    .meta .read::before {
+      content: '· ';
+    }
+    .node::before {
+      top: 7px;
+    }
+    .main {
+      grid-column: 2;
+    }
+    .posts .title {
+      font-size: 1.0625rem;
+    }
+    .go {
+      display: none;
+    }
+  }
+  /* Featured: drop the gutter where every column counts. */
+  @media (max-width: 479.98px) {
+    .editor {
+      padding-left: 0;
+    }
+    .gutter {
+      display: none;
+    }
+    .body {
+      padding: 20px 18px 24px;
+    }
+    .chrome {
+      padding-inline: 14px;
+    }
+    .fm {
+      font-size: 0.78125rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .feature .row,
+    .dots i,
+    .gutter span,
+    .feature .title,
+    .pl-cta,
+    .pl-cta .arrow,
+    .glyph,
+    .spot,
+    .rows.posts .row,
+    .meta time,
+    .node::before,
+    .node::after,
+    .main,
+    .posts .title,
+    .go {
+      transition: none;
+    }
+    .badge::before {
+      animation: none;
+    }
+    .feature .row:hover,
+    .rows.posts .row:hover .main {
+      translate: none;
+    }
+    .feature .row:hover .glyph {
+      transform: none;
+    }
+  }
+</style>

@@ -1,0 +1,154 @@
+---
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/700.css';
+import '../styles/global.css';
+import SiteHeader from '@shared/ui/SiteHeader.astro';
+import SiteFooter from '@shared/ui/SiteFooter.astro';
+import { site } from '@shared/config/site';
+import { frameText } from '@shared/lib/i18n';
+import { absoluteUrl } from '@shared/lib/xml';
+
+interface Props {
+  /** Page title; the site name is appended. Omit on the home page. */
+  title?: string;
+  description?: string;
+  /** Text after "nubibuilds —" in the window bar. */
+  windowTitle?: string;
+  /** Working directory shown in the footer prompt. */
+  path?: string;
+  /** Open Graph type. Use "article" for posts and pass `published`. */
+  type?: 'website' | 'article';
+  published?: Date;
+  /** Set on pages that should stay out of search results (e.g. 404). */
+  noindex?: boolean;
+  /** Language of the page content. */
+  lang?: string;
+  /** The same page in each available language (including this one), for hreflang. */
+  alternates?: { lang: string; href: string }[];
+  /** Site-relative social preview image. Defaults to /og.png. */
+  ogImage?: string;
+}
+
+const {
+  title,
+  description = site.description,
+  windowTitle,
+  path,
+  type = 'website',
+  published,
+  noindex = false,
+  lang = 'en',
+  alternates = [],
+  ogImage = '/og.png',
+} = Astro.props;
+
+const absolute = (href: string) => new URL(href, Astro.site).href;
+/*
+ * Page addresses always end in "/" (absoluteUrl adds it), the form the static build publishes.
+ * canonical, og:url, hreflang and the sitemap must name the same URL, or search engines get
+ * conflicting signals about which address is the real one.
+ */
+const pageUrl = (path: string) => absoluteUrl(path, Astro.site);
+const pageTitle = title ? `${title} — ${site.name}` : `${site.name} — ${site.role}`;
+const canonical = pageUrl(Astro.url.pathname);
+const defaultAlternate = alternates.find((alt) => alt.lang === 'en') ?? alternates[0];
+const analyticsToken = import.meta.env.PROD ? site.analytics.cloudflareToken : '';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.name,
+  jobTitle: site.role,
+  description: site.description,
+  url: absolute('/'),
+  sameAs: [site.links.github, site.links.linkedin].filter(Boolean),
+};
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {/* A single page can opt out (`noindex`); `site.indexable: false` opts the whole site out. */}
+    {(noindex || !site.indexable) && <meta name="robots" content={site.indexable ? 'noindex' : 'noindex, nofollow'} />}
+    {/* A page kept out of search results (the 404 page) names no canonical address. */}
+    {!noindex && <link rel="canonical" href={canonical} />}
+    {alternates.length > 1 && alternates.map((alt) => <link rel="alternate" hreflang={alt.lang} href={pageUrl(alt.href)} />)}
+    {alternates.length > 1 && defaultAlternate && <link rel="alternate" hreflang="x-default" href={pageUrl(defaultAlternate.href)} />}
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="alternate" type="application/rss+xml" title={`${site.name} — Writing`} href="/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" title={`${site.name} — Tulisan`} href="/id/rss.xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
+
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:type" content={type} />
+    <meta property="og:locale" content={lang === 'id' ? 'id_ID' : 'en_US'} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    {!noindex && <meta property="og:url" content={canonical} />}
+    <meta property="og:image" content={absolute(ogImage)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    {published && <meta property="article:published_time" content={published.toISOString()} />}
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="theme-color" content="#0a0e0b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#eef2ec" media="(prefers-color-scheme: light)" />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)}></script>
+    <!-- Apply a saved theme before first paint to avoid a flash. -->
+    <script is:inline>
+      try {
+        var saved = localStorage.getItem('theme');
+        if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+      /*
+       * Background ornaments sit at a percentage of their section's height. The browser can paint
+       * before the whole page has arrived, and the section then grows under them, so they would
+       * jump (a layout shift). Keep them hidden until the page is parsed. Without JavaScript the
+       * class is never added and they simply show.
+       */
+      document.documentElement.classList.add('orn-wait');
+      document.addEventListener('DOMContentLoaded', function () {
+        document.documentElement.classList.remove('orn-wait');
+      });
+    </script>
+    {
+      analyticsToken && (
+        <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: analyticsToken })}></script>
+      )
+    }
+  </head>
+  <body>
+    <a class="skip" href="#main">{frameText(lang).skip}</a>
+    <SiteHeader windowTitle={windowTitle} lang={lang} />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <SiteFooter path={path} lang={lang} />
+    <slot name="overlays" />
+  </body>
+</html>
+
+<style>
+  /* Hidden above the page by its own height, so it stays hidden at any text size. */
+  .skip {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    translate: 0 calc(-100% - 16px);
+    z-index: 60;
+    padding: 10px 14px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .skip:focus {
+    translate: none;
+  }
+</style>

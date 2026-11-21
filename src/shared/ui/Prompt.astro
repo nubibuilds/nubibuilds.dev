@@ -1,0 +1,35 @@
+---
+/** A shell prompt line: `nubi@builds:~$ <cmd>`. Extra content goes in the slot. */
+import { site } from '@shared/config/site';
+
+interface Props {
+  cmd?: string;
+  path?: string;
+}
+
+const { cmd, path = '~' } = Astro.props;
+---
+
+<p class="prompt">
+  <span class="user">{site.prompt.user}<span class="host">@{site.prompt.host}</span></span><span>:</span><span class="path">{path}</span><span>$</span>{' '}{cmd}<slot />
+</p>
+
+<style>
+  .prompt {
+    font-size: 0.875rem;
+    color: var(--dim);
+  }
+  .user {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .path {
+    color: var(--amber);
+  }
+  /* Shorten to `nubi:~$` so commands fit on one line on small phones. */
+  @media (max-width: 411.98px) {
+    .host {
+      display: none;
+    }
+  }
+</style>

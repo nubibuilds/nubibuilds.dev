@@ -1,0 +1,88 @@
+---
+/**
+ * Short self-hosted clip. Put the file in public/ (e.g. public/media/demo.mp4) and pass its URL.
+ *
+ *   <Video src="/media/demo.mp4" poster="/media/demo.jpg" caption="What it shows" />        player with controls
+ *   <Video src="/media/demo.mp4" poster="/media/demo.jpg" loop width={1280} height={720} />  GIF-style: silent, looping
+ *
+ * Nothing is downloaded until needed: a `loop` clip starts when it scrolls into view and
+ * pauses when it leaves; with "reduce motion" on it does not autoplay and shows controls.
+ * Use this instead of GIFs: the same recording as MP4 is a fraction of the size.
+ */
+interface Props {
+  src: string;
+  /** Image shown before the clip loads. Strongly recommended: without it the box is empty. */
+  poster?: string;
+  caption?: string;
+  /** GIF-style playback: muted, looping, plays while visible. */
+  loop?: boolean;
+  /** Intrinsic size; set both to reserve space and avoid layout shift. */
+  width?: number;
+  height?: number;
+}
+
+const { src, poster, caption, loop = false, width, height } = Astro.props;
+---
+
+<figure class="clip">
+  <video
+    src={src}
+    poster={poster}
+    width={width}
+    height={height}
+    preload="none"
+    playsinline
+    muted={loop}
+    loop={loop}
+    controls={!loop}
+    data-autoplay={loop ? '' : undefined}
+    aria-label={caption}></video>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<script>
+  const clips = document.querySelectorAll<HTMLVideoElement>('video[data-autoplay]');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduceMotion || !('IntersectionObserver' in window)) {
+    clips.forEach((clip) => {
+      clip.controls = true;
+    });
+  } else {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const clip = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting) void clip.play().catch(() => (clip.controls = true));
+          else clip.pause();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    clips.forEach((clip) => observer.observe(clip));
+  }
+</script>
+
+<style>
+  .clip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+  }
+  video {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--line);
+    background: var(--bg);
+  }
+  figcaption {
+    color: var(--dim);
+    font-size: 0.84375rem;
+  }
+  figcaption::before {
+    content: '# ';
+    color: var(--accent);
+  }
+</style>

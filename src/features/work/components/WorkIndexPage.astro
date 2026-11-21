@@ -1,0 +1,49 @@
+---
+/** The case-study list for one language. The page that uses it supplies the layout (see workIndexMeta). */
+import Section from '@shared/ui/Section.astro';
+import SectionHeading from '@shared/ui/SectionHeading.astro';
+import Marquee from '@shared/ui/Marquee.astro';
+import LangSwitch from '@shared/ui/LangSwitch.astro';
+import { BUILD_LINES } from '@shared/ui/ornaments';
+import type { Lang } from '@shared/lib/i18n';
+import { ui } from '../i18n';
+import { getAllStacks, getAllWork } from '../lib/queries';
+import { workIndexUrls } from '../lib/routes';
+import Showcase from './Showcase.astro';
+import WorkCard from './WorkCard.astro';
+import WorkFilter from './WorkFilter.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang];
+const work = await getAllWork(lang);
+---
+
+<Section bordered={false}>
+  <Marquee slot="ornament" lines={BUILD_LINES} rows={5} />
+  <div class="stack" style="--gap: 28px">
+    <div class="top">
+      <SectionHeading level={1} cmd="ls -la" path="~/work" title={t.title} note={`total ${work.length} — ${t.note}`} />
+      <LangSwitch current={lang} urls={workIndexUrls()} label={t.switchLabel} notTranslated={t.notTranslated} />
+    </div>
+    {work.length === 0 && <p class="dim">{t.empty}</p>}
+    <WorkFilter stacks={getAllStacks(work)} lang={lang} />
+    <div class="work-list">
+      {work.map((entry, index) => <WorkCard entry={entry} index={index} heading="h2" />)}
+    </div>
+    <Showcase />
+  </div>
+</Section>
+
+<style>
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 24px;
+  }
+</style>

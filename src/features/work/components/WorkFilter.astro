@@ -1,0 +1,29 @@
+---
+/**
+ * Filter the case studies by stack. Hidden until showcase.js runs, so visitors
+ * without JavaScript simply see the full list.
+ */
+import type { Lang } from '@shared/lib/i18n';
+import { ui } from '../i18n';
+
+interface Props {
+  stacks: string[];
+  lang?: Lang;
+}
+
+const { stacks, lang = 'en' } = Astro.props;
+const t = ui[lang];
+---
+
+{
+  stacks.length > 1 && (
+    <div class="work-filter" data-filter data-count={t.filterCount} hidden role="group" aria-label={t.filterLabel}>
+      <span class="dim">$ grep --stack</span>
+      <button type="button" data-filter-value="*" aria-pressed="true">{t.filterAll}</button>
+      {stacks.map((stack) => (
+        <button type="button" data-filter-value={stack} aria-pressed="false">{stack}</button>
+      ))}
+      <span data-filter-count aria-live="polite"></span>
+    </div>
+  )
+}

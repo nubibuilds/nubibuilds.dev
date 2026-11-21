@@ -1,0 +1,67 @@
+/* Search field + live results. Imported by SearchBox.astro. */
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.search[hidden] {
+  display: none;
+}
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+.search-field:focus-within {
+  border-color: var(--accent);
+  /* The input has no outline of its own, so the whole field carries the focus ring. */
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--hi);
+  caret-color: var(--accent);
+  font: inherit;
+  font-size: 16px;
+}
+.search-field input::placeholder {
+  color: var(--dim);
+  opacity: 1;
+}
+.search-field input::-webkit-search-cancel-button {
+  display: none;
+}
+.search-results[hidden] {
+  display: none;
+}
+.search-results .row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.search-title {
+  color: var(--hi);
+}
+.search-snippet {
+  color: var(--dim);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.search-status {
+  font-size: 0.8125rem;
+  color: var(--dim);
+}

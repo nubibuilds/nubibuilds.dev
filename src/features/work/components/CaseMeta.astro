@@ -1,0 +1,131 @@
+---
+/** Spec strip under the hero window: role, timeline, year and status (with a live/idle dot). */
+import { ui } from '../i18n';
+import { workLang, type WorkEntry } from '../lib/queries';
+
+interface Props {
+  entry: WorkEntry;
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const t = ui[workLang(entry)];
+const live = /live|active|aktif|production|online|shipped/i.test(data.status);
+const items = [
+  { label: t.role, value: data.role, color: 'var(--cyan)' },
+  { label: t.timeline, value: data.timeline, color: 'var(--violet)' },
+  { label: t.year, value: data.year, color: 'var(--amber)' },
+];
+---
+
+<dl class="case-spec">
+  {
+    items.map((item) => (
+      <div style={`--c:${item.color}`}>
+        <dt>{item.label}</dt>
+        <dd>{item.value}</dd>
+      </div>
+    ))
+  }
+  <div style={`--c:${live ? 'var(--accent)' : 'var(--amber)'}`}>
+    <dt>{t.status}</dt>
+    <dd class="cs-status"><span class:list={['cs-dot', { live }]} aria-hidden="true"></span>{data.status}</dd>
+  </div>
+</dl>
+
+<style>
+  .case-spec {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .case-spec > div {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 22px 20px;
+    min-width: 0;
+  }
+  .case-spec > div + div {
+    border-left: 1px solid var(--line);
+  }
+  /* A short colour tick on top of each cell. */
+  .case-spec > div::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 22px;
+    width: 28px;
+    height: 2px;
+    background: var(--c);
+  }
+  dt {
+    font-size: 0.71875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--hi);
+    overflow-wrap: anywhere;
+  }
+  .cs-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .cs-dot {
+    position: relative;
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  .cs-dot.live::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .cs-dot.live::after {
+      animation: cs-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+  }
+  @keyframes cs-ping {
+    75%,
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+  @media (max-width: 759.98px) {
+    .case-spec {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .case-spec > div:nth-child(3) {
+      border-left: 0;
+    }
+    .case-spec > div:nth-child(n + 3) {
+      border-top: 1px solid var(--line);
+    }
+  }
+  @media (max-width: 411.98px) {
+    .case-spec > div {
+      padding: 14px 14px 16px;
+    }
+    .case-spec > div::before {
+      left: 14px;
+    }
+    dd {
+      font-size: 0.84375rem;
+    }
+  }
+</style>

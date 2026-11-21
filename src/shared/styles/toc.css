@@ -1,0 +1,119 @@
+/* ---------- table of contents: a thread of branches, one per section ---------- */
+.toc {
+  font-size: 0.875rem;
+}
+.toc summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--dim);
+  cursor: pointer;
+  list-style: none;
+}
+.toc summary::-webkit-details-marker {
+  display: none;
+}
+.toc summary::after {
+  content: '[+]';
+  margin-left: 10px;
+  color: var(--accent);
+}
+.toc[open] summary::after {
+  content: '[-]';
+}
+
+.toc-tree,
+.toc-sub {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.toc-tree li {
+  position: relative;
+  padding-left: 26px;
+}
+/* Trunk: runs past every item except the last, where the thread ends. */
+.toc-tree li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 1px solid var(--line);
+}
+.toc-tree li:last-child::before {
+  display: none;
+}
+/* Branch: a rounded elbow from the trunk to the item. */
+.toc-tree li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 22px;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  border-bottom-left-radius: 10px;
+  transition: border-color 0.15s;
+}
+.toc-tree a {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 11px 0;
+  color: var(--fg);
+  line-height: 1.375rem;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.toc-num {
+  color: var(--c, var(--accent));
+  font-size: 0.8125rem;
+}
+/* Sub-sections hang from a second, shorter thread under the section number. */
+.toc-sub {
+  margin-left: 9px;
+}
+.toc-sub a {
+  color: var(--dim);
+  font-size: 0.84375rem;
+}
+.toc-tree a:hover {
+  color: var(--c, var(--accent));
+}
+/* The section being read: its branch, and its parent's, take the section colour. */
+.toc-tree li:has(a[aria-current='true'])::after {
+  border-color: var(--c, var(--accent));
+}
+.toc-tree a[aria-current='true'] {
+  color: var(--c, var(--accent));
+}
+.toc-tree a[aria-current='true']::before {
+  content: '';
+  position: absolute;
+  top: 19px;
+  left: 15px;
+  width: 5px;
+  height: 5px;
+  background: var(--c, var(--accent));
+}
+@media (prefers-reduced-motion: reduce) {
+  .toc-tree li::after,
+  .toc-tree a {
+    transition: none;
+  }
+}
+
+/* Wide screens: the list is pinned open beside the article, so the toggle is not offered. */
+@media (min-width: 1100px) {
+  .toc summary {
+    pointer-events: none;
+  }
+  .toc summary::after,
+  .toc[open] summary::after {
+    content: none;
+  }
+}

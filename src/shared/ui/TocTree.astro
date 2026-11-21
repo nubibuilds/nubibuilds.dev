@@ -1,0 +1,57 @@
+---
+/**
+ * The contents list drawn as a thread: a trunk with a rounded branch to every section
+ * (H2) and a second, shorter thread for its sub-sections (H3). Each section has a colour,
+ * used for its number and for its branch while that section is being read.
+ * Styles: src/shared/styles/toc.css. The "being read" state is set by ProseEnhance.
+ */
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+  /** Deepest heading level to list (2 = sections only). */
+  maxDepth?: 2 | 3;
+  /** Section colours, used in order and repeated. */
+  colors?: string[];
+}
+
+const { headings, maxDepth = 3, colors = ['var(--accent)', 'var(--cyan)', 'var(--violet)', 'var(--amber)'] } = Astro.props;
+
+const sections: { heading: Heading; children: Heading[] }[] = [];
+for (const heading of headings) {
+  if (heading.slug === 'footnote-label') continue;
+  if (heading.depth === 2) {
+    sections.push({ heading, children: [] });
+  } else if (heading.depth === 3 && maxDepth >= 3) {
+    sections.at(-1)?.children.push(heading);
+  }
+}
+---
+
+<ol class="toc-tree">
+  {
+    sections.map((section, i) => (
+      <li style={`--c:${colors[i % colors.length]}`}>
+        <a href={`#${section.heading.slug}`}>
+          <span class="toc-num">{String(i + 1).padStart(2, '0')}</span>
+          <span>{section.heading.text}</span>
+        </a>
+        {section.children.length > 0 && (
+          <ol class="toc-sub">
+            {section.children.map((child) => (
+              <li>
+                <a href={`#${child.slug}`}>
+                  <span>{child.text}</span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        )}
+      </li>
+    ))
+  }
+</ol>

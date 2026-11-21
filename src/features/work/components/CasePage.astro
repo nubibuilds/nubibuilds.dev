@@ -1,0 +1,383 @@
+---
+/**
+ * One case study:
+ *   hero      — case number, title, summary, stack, actions; the cover in a terminal window with the spec strip
+ *   overview  — the four highlights as linked steps, and the metrics
+ *   body      — contents + the rendered Markdown + screenshots
+ *   next      — a large link to the next case study
+ * The page that uses it supplies the layout (see caseMeta in ../lib/routes).
+ */
+import { render } from 'astro:content';
+import Section from '@shared/ui/Section.astro';
+import Prompt from '@shared/ui/Prompt.astro';
+import Rain from '@shared/ui/Rain.astro';
+import Marquee from '@shared/ui/Marquee.astro';
+import LangSwitch from '@shared/ui/LangSwitch.astro';
+import ProseEnhance from '@shared/ui/ProseEnhance.astro';
+import { transitionName } from '@shared/lib/vt';
+import { CIRCUIT, HEX_LINES } from '@shared/ui/ornaments';
+import { ui } from '../i18n';
+import { workBase, workLang, workSlug } from '../lib/queries';
+import type { CaseProps } from '../lib/routes';
+import CaseMedia from './CaseMedia.astro';
+import CaseMeta from './CaseMeta.astro';
+import CaseOverview from './CaseOverview.astro';
+import CaseToc from './CaseToc.astro';
+import Gallery from './Gallery.astro';
+import NextCase from './NextCase.astro';
+import Showcase from './Showcase.astro';
+
+type Props = CaseProps;
+
+const { entry, next, urls, index, total } = Astro.props;
+const { data } = entry;
+const lang = workLang(entry);
+const t = ui[lang];
+const base = workBase(lang);
+const slug = workSlug(entry);
+const num = String(index + 1).padStart(2, '0');
+const { Content, headings } = await render(entry);
+---
+
+<div class="read-progress" aria-hidden="true"></div>
+
+<Section bordered={false}>
+  <Marquee slot="ornament" lines={HEX_LINES} rows={2} />
+  <div class="hero">
+    <div class="top">
+      <a class="quiet-link back" href={base}>← cd ..</a>
+      <LangSwitch current={lang} urls={urls} label={t.switchLabel} notTranslated={t.notTranslated} />
+    </div>
+
+    <div class="intro">
+      <p class="ghost-num" aria-hidden="true">{num}</p>
+      <Prompt cmd={`cat ${slug}/case-study.md`} path="~/work" />
+      {data.draft && <p class="draft-note"><span class="draft-badge">[draft]</span> shown only in pnpm dev; left out of pnpm build.</p>}
+      <p class="kicker">
+        <span class="k-case">{t.caseLabel} {num}<span class="dim"> / {String(total).padStart(2, '0')}</span></span>
+        <span>drwxr-xr-x</span>
+        <span class="k-year">{data.year}</span>
+      </p>
+      <h1 class="title" style={`view-transition-name:${transitionName('work', entry.id)}`}>
+        {data.title}<span class="slash" aria-hidden="true">/</span>
+      </h1>
+      <p class="summary">{data.summary}</p>
+      {
+        data.stack.length > 0 && (
+          <ul class="chips" aria-label={t.stack}>
+            {data.stack.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        )
+      }
+      <div class="actions">
+        {
+          data.demo && (
+            <a class="act act-primary" href={data.demo}>
+              <span class="act-p">$</span> {t.liveDemo} <span aria-hidden="true">↗</span>
+            </a>
+          )
+        }
+        {
+          data.repo && (
+            <a class="act" href={data.repo}>
+              <span class="act-p">$</span> {t.source} <span aria-hidden="true">↗</span>
+            </a>
+          )
+        }
+        <a class:list={['act', { 'act-primary': !data.demo }]} href="#overview">
+          <span class="act-p">$</span> {t.readCase} <span class="act-down" aria-hidden="true">↓</span>
+        </a>
+      </div>
+    </div>
+
+    <CaseMedia entry={entry}>
+      <CaseMeta entry={entry} />
+    </CaseMedia>
+  </div>
+  <Showcase />
+</Section>
+
+<Section id="overview">
+  <CaseOverview entry={entry} headings={headings} />
+</Section>
+
+<Section>
+  <Rain slot="ornament" texts={CIRCUIT} edge />
+  <div class="body">
+    <CaseToc headings={headings} label={t.contents} />
+    <div class="main">
+      <article class="prose case">
+        <Content />
+      </article>
+      <Gallery items={data.gallery} heading={t.screenshots} />
+      <ProseEnhance />
+    </div>
+  </div>
+</Section>
+
+<Section>
+  <nav class="pager" aria-label={t.more}>
+    {next && <NextCase next={next} />}
+    <a class="quiet-link back-all" href={base}>← ls ./work{' '}<span class="dim">— {t.allWork}</span></a>
+  </nav>
+</Section>
+
+<style>
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 24px;
+    margin-bottom: -24px;
+  }
+  .back {
+    color: var(--cyan);
+  }
+
+  /* ---------- intro ---------- */
+  .intro {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .intro > * {
+    position: relative;
+  }
+  /* Big outlined case number behind the title. */
+  .intro > .ghost-num {
+    position: absolute;
+    top: -8px;
+    right: -6px;
+    font-size: clamp(7.5rem, 20vw, 15rem);
+    font-weight: 700;
+    line-height: 0.8;
+    letter-spacing: -0.06em;
+    color: transparent;
+    -webkit-text-stroke: 1px color-mix(in srgb, var(--accent) 45%, var(--line));
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 16%, transparent), transparent 75%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    mask-image: linear-gradient(to bottom, #000 30%, transparent 95%);
+    pointer-events: none;
+    user-select: none;
+  }
+  .kicker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    font-size: 0.78125rem;
+    color: var(--dim);
+  }
+  .kicker > span + span::before {
+    content: '·';
+    margin-right: 12px;
+    color: var(--line);
+  }
+  .k-case {
+    padding: 2px 10px;
+    border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line));
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .k-year {
+    color: var(--amber);
+  }
+  .title {
+    max-width: 18ch;
+    font-size: clamp(2.25rem, 6.4vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    color: var(--hi);
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+  .slash {
+    color: var(--accent);
+    text-shadow: 0 0 28px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .summary {
+    max-width: 60ch;
+    font-size: clamp(1rem, 1.6vw, 1.15625rem);
+    line-height: 1.65;
+    color: var(--fg);
+    text-wrap: pretty;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.78125rem;
+  }
+  .chips li {
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--cyan) 6%, var(--bg));
+    color: var(--cyan);
+  }
+  .chips li::before {
+    content: '#';
+    color: var(--dim);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 6px;
+  }
+  .act {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    font-size: 0.875rem;
+    color: var(--fg);
+    text-decoration: none;
+    transition:
+      background 0.2s,
+      border-color 0.2s,
+      color 0.2s,
+      box-shadow 0.2s;
+  }
+  .act:hover,
+  .act:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .act-p {
+    color: var(--accent);
+  }
+  .act-primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+  }
+  .act-primary .act-p {
+    color: inherit;
+  }
+  .act-primary:hover,
+  .act-primary:focus-visible {
+    color: var(--on-accent);
+    box-shadow: var(--glow), 0 12px 30px -14px color-mix(in srgb, var(--accent) 80%, transparent);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .act:hover .act-down {
+      animation: nudge 0.8s ease-in-out infinite;
+    }
+    /* Intro lines settle in one after another. */
+    .intro > :not(.ghost-num) {
+      animation: rise 0.7s var(--ease-out) backwards;
+    }
+    .intro > :nth-child(3) {
+      animation-delay: 0.04s;
+    }
+    .intro > :nth-child(4) {
+      animation-delay: 0.08s;
+    }
+    .intro > :nth-child(5) {
+      animation-delay: 0.12s;
+    }
+    .intro > :nth-child(6) {
+      animation-delay: 0.16s;
+    }
+    .intro > :nth-child(n + 7) {
+      animation-delay: 0.2s;
+    }
+    .intro > .ghost-num {
+      animation: ghost 1.4s ease-out backwards;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+  @keyframes ghost {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+  }
+  @keyframes nudge {
+    50% {
+      transform: translateY(3px);
+    }
+  }
+
+  /* ---------- body ---------- */
+  /* One column with the contents box on top; from 1100px the contents become a sticky column on the left. */
+  .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px 56px;
+  }
+  .main {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    min-width: 0;
+  }
+  @media (min-width: 1100px) {
+    .body {
+      grid-template-columns: 220px minmax(0, 1fr);
+    }
+  }
+
+  /* ---------- next ---------- */
+  .pager {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .back-all {
+    align-self: flex-start;
+    color: var(--cyan);
+  }
+
+  @media (max-width: 599.98px) {
+    .hero {
+      gap: 32px;
+    }
+    .top {
+      margin-bottom: -16px;
+    }
+    .intro {
+      gap: 14px;
+    }
+    .intro > .ghost-num {
+      display: none;
+    }
+    .actions {
+      width: 100%;
+    }
+    .act {
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .act {
+      transition: none;
+    }
+  }
+</style>

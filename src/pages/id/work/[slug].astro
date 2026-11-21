@@ -1,0 +1,19 @@
+---
+import BaseLayout from '@app/SiteLayout.astro';
+import CasePage from '@features/work/components/CasePage.astro';
+import { caseMeta, caseStaticPaths, type CaseProps } from '@features/work/lib/routes';
+import { ogImageFor } from '@shared/lib/og';
+
+export async function getStaticPaths() {
+  return caseStaticPaths('id');
+}
+
+type Props = CaseProps;
+
+const { entry, urls } = Astro.props;
+const ogImage = await ogImageFor('work', entry.id);
+---
+
+<BaseLayout {...caseMeta(entry, urls)} ogImage={ogImage}>
+  <CasePage {...Astro.props} />
+</BaseLayout>

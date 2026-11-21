@@ -1,0 +1,485 @@
+/* Work showcase: project entries and the stack filter. Imported by WorkCard.astro. */
+
+/* The list owns the spacing: cards hidden by the filter are display: none, so they leave no gap. */
+.work-list {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+/* ---------- one project ---------- */
+.work-card {
+  --mx: 50%;
+  --my: 0%;
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  container: work-card / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  padding-block: 8px 0;
+}
+.work-card[hidden] {
+  display: none;
+}
+/* A divider above every visible card after the first visible one, wherever the filter hides cards. */
+.work-card:not([hidden]) ~ .work-card:not([hidden]) {
+  padding-top: 56px;
+  border-top: 1px dashed var(--line);
+}
+
+.wc-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 28px 56px;
+  perspective: 1400px;
+}
+
+/* ---------- cover, framed as a terminal window ---------- */
+.wc-window {
+  position: relative;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  box-shadow: 0 24px 60px -36px color-mix(in srgb, var(--accent) 40%, transparent);
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s,
+    transform 0.3s ease-out,
+    translate 0.3s ease-out;
+}
+.work-card:hover .wc-window,
+.work-card:focus-within .wc-window {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+  box-shadow: 0 34px 80px -34px color-mix(in srgb, var(--accent) 60%, transparent);
+  translate: 0 -6px;
+}
+.wc-chrome {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bar);
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+.wc-dots {
+  display: flex;
+  gap: 6px;
+}
+.wc-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background 0.3s;
+}
+.work-card:hover .wc-dots i:nth-child(1) {
+  background: var(--coral);
+}
+.work-card:hover .wc-dots i:nth-child(2) {
+  background: var(--amber);
+}
+.work-card:hover .wc-dots i:nth-child(3) {
+  background: var(--accent);
+}
+.wc-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Spotlight that follows the pointer (position set by showcase.js). */
+.wc-spot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(420px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.work-card:hover .wc-spot {
+  opacity: 1;
+}
+
+/* Generated ASCII cover. */
+.wc-cover {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  container-type: inline-size;
+  aspect-ratio: 16 / 10;
+  padding: 0 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 65%),
+    linear-gradient(color-mix(in srgb, var(--line) 60%, transparent) 1px, transparent 1px) 0 0 / 100% 22px,
+    linear-gradient(90deg, color-mix(in srgb, var(--line) 60%, transparent) 1px, transparent 1px) 0 0 / 22px 100%,
+    var(--bg);
+}
+.wc-cmd {
+  position: absolute;
+  top: 14px;
+  left: 20px;
+  right: 20px;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: 0.78125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wc-art {
+  margin: 0;
+  font-family: var(--font-ascii);
+  font-size: clamp(6px, 3.6cqw, 20px);
+  line-height: 1;
+  white-space: pre;
+  background: linear-gradient(to top, var(--accent), var(--cyan));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  opacity: 0.55;
+  transform: scaleY(1.9);
+  transform-origin: 50% 100%;
+  mask-image: linear-gradient(to top, #000 55%, transparent);
+  transition: opacity 0.3s;
+}
+.work-card:hover .wc-art {
+  opacity: 0.9;
+}
+/* A real screenshot (frontmatter `cover`) replaces the generated art. */
+.wc-cover.has-img {
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  background: var(--surface);
+}
+.wc-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 0;
+  transition: scale 0.6s var(--ease-out);
+}
+.work-card:hover .wc-img {
+  scale: 1.03;
+}
+/* A scan line sweeps the cover while the project is hovered. */
+.wc-scan {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 18px 4px color-mix(in srgb, var(--accent) 60%, transparent);
+  opacity: 0;
+}
+.work-card:hover .wc-scan {
+  opacity: 0.8;
+  animation: wc-scan 1.8s linear infinite;
+}
+@keyframes wc-scan {
+  from {
+    left: 0;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+/* ---------- intro: number, title, summary, stack ---------- */
+.wc-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+.wc-index {
+  font-size: clamp(2.75rem, 6vw, 4rem);
+  font-weight: 700;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--accent) 70%, var(--line));
+  transition:
+    color 0.35s,
+    text-shadow 0.35s;
+}
+.work-card:hover .wc-index {
+  color: var(--accent);
+  text-shadow: 0 0 26px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.wc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 0.78125rem;
+  color: var(--dim);
+}
+.wc-meta > span + span::before {
+  content: '·';
+  margin-right: 10px;
+  color: var(--line);
+}
+.wc-when {
+  color: var(--amber);
+}
+.wc-title {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.wc-title a {
+  color: var(--hi);
+  text-decoration: none;
+  transition: color 0.25s;
+}
+.wc-slash {
+  color: var(--accent);
+}
+.work-card:hover .wc-title a {
+  color: var(--accent);
+}
+/* The whole project is the link. */
+.wc-title a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.wc-summary {
+  max-width: 52ch;
+  font-size: 0.96875rem;
+  line-height: 1.65;
+  color: var(--fg);
+  text-wrap: pretty;
+}
+.wc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78125rem;
+  color: var(--cyan);
+}
+.wc-chips li::before {
+  content: '#';
+  color: var(--dim);
+}
+.wc-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  font-size: 0.875rem;
+  color: var(--fg);
+  transition:
+    background 0.25s,
+    border-color 0.25s,
+    color 0.25s,
+    box-shadow 0.25s;
+}
+.wc-prompt {
+  color: var(--accent);
+}
+.work-card:hover .wc-more,
+.work-card:focus-within .wc-more {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--glow);
+}
+.work-card:hover .wc-prompt,
+.work-card:focus-within .wc-prompt {
+  color: inherit;
+}
+.wc-more .arrow {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+.work-card:hover .wc-more .arrow {
+  transform: translateX(4px);
+}
+
+/* ---------- problem → architecture → implementation → result ---------- */
+.wc-flow {
+  display: grid;
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wc-flow li {
+  position: relative;
+  padding-left: 26px;
+}
+/* Step marker. */
+.wc-flow li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--c);
+  border-radius: 50%;
+  background: var(--bg);
+  transition:
+    background 0.3s calc(var(--i) * 0.12s),
+    box-shadow 0.3s calc(var(--i) * 0.12s);
+}
+/* Connector to the next step: grey at rest, filled with the step's colour on hover. */
+.wc-flow li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 19px;
+  bottom: -18px;
+  width: 1px;
+  background: linear-gradient(var(--c), var(--c)) no-repeat 0 0 / 100% 0%, var(--line);
+  transition: background-size 0.35s calc(var(--i) * 0.12s + 0.1s);
+}
+.work-card:hover .wc-flow li::before {
+  background: var(--c);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c) 60%, transparent);
+}
+.work-card:hover .wc-flow li:not(:last-child)::after {
+  background-size:
+    100% 100%,
+    auto;
+}
+.wc-flow .label {
+  margin-bottom: 6px;
+  font-size: 0.78125rem;
+  letter-spacing: 0.04em;
+  color: var(--c);
+}
+.wc-flow .text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Wide: cover and intro side by side (alternating sides), and the pipeline runs across. */
+@container work-card (min-width: 760px) {
+  .wc-head {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+  .flip .wc-window {
+    order: 2;
+  }
+  .wc-flow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0 32px;
+  }
+  .wc-flow li {
+    padding: 26px 0 0;
+  }
+  .wc-flow li::before {
+    top: 0;
+  }
+  .wc-flow li:not(:last-child)::after {
+    left: 19px;
+    right: -27px;
+    top: 5px;
+    bottom: auto;
+    width: auto;
+    height: 1px;
+    background-position: 0 0;
+    background-size:
+      0% 100%,
+      auto;
+  }
+}
+
+/* ---------- stack filter ---------- */
+.work-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84375rem;
+}
+.work-filter[hidden] {
+  display: none;
+}
+.work-filter button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    color 0.2s,
+    background 0.2s;
+}
+.work-filter button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.work-filter button[aria-pressed='true'] {
+  border-color: var(--accent);
+  /* 10%, not more: --accent text on this tint stays above 4.5:1 in the light theme (14% gave 4.48). */
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+.work-filter [data-filter-count] {
+  margin-left: auto;
+  color: var(--dim);
+}
+
+@media (max-width: 411.98px) {
+  .work-card {
+    gap: 28px;
+  }
+  .work-list {
+    gap: 40px;
+  }
+  .work-card:not([hidden]) ~ .work-card:not([hidden]) {
+    padding-top: 40px;
+  }
+  .wc-cover {
+    padding: 0 14px;
+  }
+  .wc-cmd {
+    left: 14px;
+    right: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wc-window,
+  .wc-dots i,
+  .wc-spot,
+  .wc-art,
+  .wc-title a,
+  .wc-img,
+  .wc-index,
+  .wc-more,
+  .wc-more .arrow,
+  .wc-flow li::before,
+  .wc-flow li::after {
+    transition: none;
+  }
+  .work-card:hover .wc-window {
+    translate: none;
+  }
+  .work-card:hover .wc-scan {
+    animation: none;
+    opacity: 0;
+  }
+}

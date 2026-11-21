@@ -1,0 +1,81 @@
+---
+/**
+ * Switch between the language versions of a page: `lang [en] id`.
+ * The current language is marked; a language with no version is shown but not linked.
+ */
+import { LANGS, langNames, type Lang, type LangUrls } from '@shared/lib/i18n';
+
+interface Props {
+  current: Lang;
+  urls: LangUrls;
+  /** Accessible name of the switch, in the page's language. */
+  label: string;
+  /** Text before the language name when a version is missing, e.g. "Not available in". */
+  notTranslated: string;
+}
+
+const { current, urls, label, notTranslated } = Astro.props;
+---
+
+<nav class="lang-switch" aria-label={label} data-lang-switch>
+  <span class="dim" aria-hidden="true">lang</span>
+  {
+    LANGS.map((code) => {
+      const href = urls[code];
+      if (code === current) {
+        return (
+          <span class="item on" aria-current="true" lang={code} title={langNames[code]}>
+            [{code}]
+          </span>
+        );
+      }
+      if (href) {
+        return (
+          <a class="item" href={href} hreflang={code} lang={code} title={langNames[code]}>
+            {code}
+          </a>
+        );
+      }
+      return (
+        <span class="item off" lang={code} title={`${notTranslated} ${langNames[code]}`}>
+          {code}
+          {/* The tooltip only reaches mouse users; screen readers get the same words here. */}
+          <span class="sr-only">({notTranslated} {langNames[code]})</span>
+        </span>
+      );
+    })
+  }
+</nav>
+
+<style>
+  .lang-switch {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.84375rem;
+  }
+  .item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 6px;
+    text-decoration: none;
+  }
+  a.item {
+    color: var(--cyan);
+  }
+  a.item:hover {
+    color: var(--accent);
+    background: var(--hover);
+  }
+  .on {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .off {
+    color: var(--dim);
+    text-decoration: line-through;
+  }
+</style>

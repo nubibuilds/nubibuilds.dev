@@ -1,0 +1,31 @@
+---
+/**
+ * Search-as-you-type field with a results list. Hidden until JavaScript runs.
+ * Limit it to one kind of content and/or one language with `kind` and `lang`.
+ */
+import '../styles/search.css';
+import script from '../lib/search-box.js?raw';
+
+interface Props {
+  kind?: 'work' | 'writing';
+  lang?: string;
+  label?: string;
+  placeholder?: string;
+  /** Text before the quoted query when nothing matches. */
+  empty?: string;
+  /** Text after the number of matches. */
+  found?: string;
+}
+
+const { kind, lang, label = 'Search', placeholder = 'search…', empty = 'No matches for', found = ' found' } = Astro.props;
+---
+
+<div class="search" data-search data-kind={kind} data-lang={lang} data-empty={empty} data-found={found} hidden>
+  <label class="search-field">
+    <span aria-hidden="true">$ grep -i</span>
+    <input type="search" aria-label={label} placeholder={placeholder} autocomplete="off" spellcheck="false" />
+  </label>
+  <ul class="rows search-results" data-search-results hidden></ul>
+  <p class="search-status" data-search-status aria-live="polite" hidden></p>
+</div>
+<script is:inline set:html={script}></script>

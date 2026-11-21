@@ -1,0 +1,371 @@
+---
+/**
+ * `whoami --verbose` as a terminal window: the portrait sits in a viewfinder (corner
+ * brackets on a dot grid with a soft glow), prints itself line by line on load, and a
+ * scan line keeps sweeping over it. The facts below end with a live availability status.
+ */
+import { site } from '@shared/config/site';
+import AsciiPortrait from './AsciiPortrait.astro';
+
+const { portrait, photo, name, base, focus, status } = site.owner;
+
+const facts = [
+  { key: 'name', value: name },
+  { key: 'role', value: site.role },
+  { key: 'base', value: base },
+  { key: 'focus', value: focus },
+];
+---
+
+<aside class="profile" aria-label="Profile">
+  <div class="bar">
+    <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+    <p class="title">whoami --verbose</p>
+    <p class="mode" aria-hidden="true">tty1</p>
+  </div>
+
+  {
+    portrait !== 'none' && (
+      <div class="frame">
+        <span class="corner tl" aria-hidden="true" />
+        <span class="corner tr" aria-hidden="true" />
+        <span class="corner bl" aria-hidden="true" />
+        <span class="corner br" aria-hidden="true" />
+        {/* Chosen with `owner.portrait` in src/shared/config/site.ts. */}
+        {portrait === 'ascii' && <AsciiPortrait name={name} />}
+        {portrait === 'photo' && photo && (
+          <img class="photo" src={photo} alt={`Portrait of ${name}`} width="800" height="800" loading="lazy" decoding="async" />
+        )}
+        <span class="scan" aria-hidden="true" />
+        <span class="tag file" aria-hidden="true">
+          {portrait === 'ascii' ? 'portrait.txt' : 'portrait.jpg'}
+        </span>
+        <span class="tag rec" aria-hidden="true">
+          <i></i>live
+        </span>
+      </div>
+    )
+  }
+
+  <dl class="facts">
+    {
+      facts.map((f) => (
+        <div class="fact">
+          <dt>{f.key}</dt>
+          <dd>{f.value}</dd>
+        </div>
+      ))
+    }
+    <div class="fact status">
+      <dt>status</dt>
+      <dd>
+        <span class="pulse" aria-hidden="true"></span>
+        {status}
+      </dd>
+    </div>
+  </dl>
+</aside>
+
+<style>
+  .profile {
+    position: relative;
+    isolation: isolate;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: 0 40px 80px -48px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  /* A dashed copy of the card, offset behind it: depth without a heavy shadow. */
+  .profile::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 1px dashed color-mix(in srgb, var(--accent) 35%, var(--line));
+    transform: translate(10px, 10px);
+    pointer-events: none;
+  }
+
+  /* ---------- window bar ---------- */
+  .bar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bar);
+    font-size: 0.8125rem;
+  }
+  .lights {
+    display: flex;
+    gap: 7px;
+  }
+  .lights i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--coral);
+    opacity: 0.85;
+  }
+  .lights i:nth-child(2) {
+    background: var(--amber);
+  }
+  .lights i:nth-child(3) {
+    background: var(--accent);
+  }
+  .title {
+    color: var(--hi);
+    white-space: nowrap;
+  }
+  .mode {
+    justify-self: end;
+    color: var(--dim);
+  }
+
+  /* ---------- viewfinder ---------- */
+  .frame {
+    --pad: clamp(18px, 3.4vw, 28px);
+    position: relative;
+    margin: 16px;
+    padding: var(--pad) var(--pad) calc(var(--pad) + 18px);
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 50% 42%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 62%),
+      radial-gradient(color-mix(in srgb, var(--dim) 22%, transparent) 1px, transparent 1.5px) 0 0 / 14px 14px,
+      var(--bg);
+    border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  }
+  .frame :global(.portrait) {
+    position: relative;
+    transition: filter 0.4s;
+  }
+  .frame:hover :global(.portrait) {
+    filter: saturate(1.25) brightness(1.12);
+  }
+
+  .corner {
+    position: absolute;
+    z-index: 2;
+    width: 16px;
+    height: 16px;
+    border: 0 solid var(--accent);
+    transition:
+      width 0.35s var(--ease-out),
+      height 0.35s var(--ease-out);
+  }
+  .tl {
+    top: 8px;
+    left: 8px;
+    border-width: 2px 0 0 2px;
+  }
+  .tr {
+    top: 8px;
+    right: 8px;
+    border-width: 2px 2px 0 0;
+  }
+  .bl {
+    bottom: 8px;
+    left: 8px;
+    border-width: 0 0 2px 2px;
+  }
+  .br {
+    bottom: 8px;
+    right: 8px;
+    border-width: 0 2px 2px 0;
+  }
+  .frame:hover .corner {
+    width: 26px;
+    height: 26px;
+  }
+
+  .tag {
+    position: absolute;
+    z-index: 2;
+    bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .file {
+    left: 32px;
+  }
+  .rec {
+    right: 32px;
+    color: var(--accent);
+  }
+  .rec i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: blink 1.6s steps(1) infinite;
+  }
+
+  /* Always a square, whatever the file's shape, so the card never jumps while it loads. */
+  .photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: cover;
+  }
+
+  /*
+   * The scan line: a frame-sized layer with a glowing band along its bottom edge, moved
+   * by its own height so the band travels from above the frame to its bottom.
+   */
+  .scan {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent calc(100% - 64px),
+      color-mix(in srgb, var(--accent) 14%, transparent) calc(100% - 6px),
+      color-mix(in srgb, var(--accent) 60%, transparent)
+    );
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  /* ---------- facts ---------- */
+  .facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    margin: 0;
+    padding: 4px 0 8px;
+    font-size: 0.875rem;
+  }
+  .fact {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    gap: 20px;
+    padding: 9px 20px;
+  }
+  .fact + .fact {
+    border-top: 1px dashed var(--line);
+  }
+  .fact dt {
+    color: var(--dim);
+  }
+  .fact dt::before {
+    content: '--';
+  }
+  .fact dd {
+    color: var(--hi);
+    overflow-wrap: anywhere;
+  }
+  .status dd {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .pulse {
+    position: relative;
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pf-pulse 2s var(--ease-out) infinite;
+  }
+  @keyframes pf-pulse {
+    to {
+      transform: scale(3);
+      opacity: 0;
+    }
+  }
+
+  /* ---------- motion ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    /* The portrait prints itself top to bottom, a band of lines at a time. */
+    .frame :global(.portrait) {
+      animation: pf-print 1.8s steps(24, end) 0.2s both;
+    }
+    .scan {
+      animation:
+        pf-print-scan 1.8s steps(24, end) 0.2s both,
+        pf-sweep 7s cubic-bezier(0.45, 0, 0.55, 1) 2.4s infinite;
+    }
+  }
+  @keyframes pf-print {
+    from {
+      clip-path: inset(0 0 100% 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  /* The scan line rides the printing edge, then hands over to the sweep. */
+  @keyframes pf-print-scan {
+    from {
+      opacity: 1;
+      transform: translateY(-100%);
+    }
+    99% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      transform: translateY(0);
+    }
+  }
+  @keyframes pf-sweep {
+    0% {
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+    8% {
+      opacity: 1;
+    }
+    55% {
+      opacity: 0.9;
+      transform: translateY(0);
+    }
+    62%,
+    100% {
+      opacity: 0;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .corner {
+      transition: none;
+    }
+    .rec i,
+    .pulse::after {
+      animation: none;
+    }
+  }
+  @media (forced-colors: active) {
+    .scan,
+    .profile::before {
+      display: none;
+    }
+  }
+
+  @media (max-width: 411.98px) {
+    .frame {
+      margin: 12px;
+    }
+    .fact {
+      gap: 14px;
+      padding: 9px 14px;
+    }
+  }
+</style>

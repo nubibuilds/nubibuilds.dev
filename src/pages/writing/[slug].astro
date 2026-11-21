@@ -1,0 +1,19 @@
+---
+import BaseLayout from '@app/SiteLayout.astro';
+import ArticlePage from '@features/writing/components/ArticlePage.astro';
+import { articleMeta, articleStaticPaths, type ArticleProps } from '@features/writing/lib/routes';
+import { ogImageFor } from '@shared/lib/og';
+
+export async function getStaticPaths() {
+  return articleStaticPaths('en');
+}
+
+type Props = ArticleProps;
+
+const { post, urls } = Astro.props;
+const ogImage = await ogImageFor('writing', post.id);
+---
+
+<BaseLayout {...articleMeta(post, urls)} ogImage={ogImage}>
+  <ArticlePage {...Astro.props} />
+</BaseLayout>

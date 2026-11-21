@@ -1,0 +1,483 @@
+---
+/**
+ * One article: a header with a vim-style status line, the rendered Markdown beside a pinned
+ * contents list and reading meter, links to the older and newer post, and more posts.
+ * The page that uses it supplies the layout (see articleMeta in ../lib/routes).
+ */
+import '../styles/article.css';
+import { render } from 'astro:content';
+import Section from '@shared/ui/Section.astro';
+import Prompt from '@shared/ui/Prompt.astro';
+import Rain from '@shared/ui/Rain.astro';
+import Marquee from '@shared/ui/Marquee.astro';
+import Toc from '@shared/ui/Toc.astro';
+import ProseEnhance from '@shared/ui/ProseEnhance.astro';
+import { transitionName } from '@shared/lib/vt';
+import { FILE_LINES, MARKDOWN_LINES, MARKDOWN_RAIN } from '@shared/ui/ornaments';
+import { ui } from '../i18n';
+import { formatDate, postLang, postSlug, postUrl, readingMinutes, wordCount, writingBase } from '../lib/queries';
+import type { ArticleProps } from '../lib/routes';
+import LangSwitch from './LangSwitch.astro';
+import PostList from './PostList.astro';
+
+type Props = ArticleProps;
+
+const { post, more, newer, older, urls } = Astro.props;
+const { data } = post;
+const lang = postLang(post);
+const slug = postSlug(post);
+const t = ui[lang];
+const { Content, headings } = await render(post);
+const words = wordCount(post.body);
+const neighbours = [
+  older && { post: older, dir: 'older', label: `← ${t.older}` },
+  newer && { post: newer, dir: 'newer', label: `${t.newer} →` },
+].filter((item) => !!item);
+---
+
+<div class="read-progress" aria-hidden="true"></div>
+
+<Section bordered={false}>
+  <Marquee slot="ornament" lines={MARKDOWN_LINES} rows={2} />
+  <header class="hero">
+    <div class="top">
+      <a class="quiet-link back" href={writingBase(lang)}>← cd ..</a>
+      <LangSwitch current={lang} urls={urls} />
+    </div>
+    <Prompt cmd={`less ${slug}.md`} path="~/writing" />
+    {data.draft && <p class="draft-note"><span class="draft-badge">[draft]</span> shown only in pnpm dev; left out of pnpm build.</p>}
+    {
+      data.tags.length > 0 && (
+        <ul class="tags" aria-label={t.topics}>
+          {data.tags.map((tag) => (
+            <li>#{tag}</li>
+          ))}
+        </ul>
+      )
+    }
+    <h1 class="title" style={`view-transition-name:${transitionName('post', post.id)}`}>{data.title}</h1>
+    <p class="summary">{data.summary}</p>
+
+    {/* A vim status line: mode, file, then the article's facts. */}
+    <div class="status">
+      <span class="mode" aria-hidden="true">{t.mode}</span>
+      <span class="seg file" aria-hidden="true">{slug}.md</span>
+      <span class="seg">
+        <span class="k">{t.date}</span>
+        <time datetime={data.date.toISOString()}>{formatDate(data.date)}</time>
+      </span>
+      <span class="seg">
+        <span class="k">{t.read}</span>
+        {`${readingMinutes(post.body)} ${t.min}`}
+      </span>
+      <span class="seg words">
+        <span class="k">{t.words}</span>
+        {words.toLocaleString(lang)}
+      </span>
+      <span class="seg enc" aria-hidden="true">{lang} · utf-8 · md</span>
+    </div>
+  </header>
+</Section>
+
+<Section>
+  <Rain slot="ornament" texts={MARKDOWN_RAIN} edge />
+  <div class="reader">
+    <aside class="side">
+      <Toc headings={headings} label={t.contents} />
+      <div class="meter" aria-hidden="true">
+        <span class="meter-head"><span>{t.progress}</span><span class="pct"></span></span>
+        <span class="bar"><i></i></span>
+      </div>
+    </aside>
+
+    <article class="prose article">
+      <Content />
+      <footer class="end">
+        <p class="end-mark">(END)<span class="cursor" aria-hidden="true"></span></p>
+        <a class="quiet-link to-top" href="#main">↑ {t.backToTop}</a>
+      </footer>
+    </article>
+
+    {
+      neighbours.length > 0 && (
+        <nav class="pager" aria-label={t.pager}>
+          {neighbours.map((item) => (
+            <a class:list={['pg', item.dir]} href={postUrl(item.post)}>
+              <span class="pg-dir">{item.label}</span>
+              <span class="pg-title">{item.post.data.title}</span>
+              <span class="pg-meta">
+                <time datetime={item.post.data.date.toISOString()}>{formatDate(item.post.data.date)}</time>
+                <span>
+                  {readingMinutes(item.post.body)} {t.min}
+                </span>
+              </span>
+            </a>
+          ))}
+        </nav>
+      )
+    }
+  </div>
+  <ProseEnhance />
+</Section>
+
+{
+  more.length > 0 && (
+    <Section>
+      <Marquee slot="ornament" lines={FILE_LINES} rows={2} />
+      <div class="more">
+        <div class="stack" style="--gap: 20px">
+          <Prompt cmd="ls --sort=date | head -3" path="~/writing" />
+          <h2 class="sr-only">{t.more}</h2>
+          <PostList posts={more} />
+        </div>
+      </div>
+    </Section>
+  )
+}
+
+<style>
+  /* ================= header ================= */
+  .hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 900px;
+  }
+  /* A soft glow behind the title. */
+  .hero::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 40px;
+    left: -12%;
+    width: 80%;
+    height: 420px;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 9%, transparent), transparent);
+    pointer-events: none;
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 24px;
+    margin-bottom: -4px;
+  }
+  .back {
+    color: var(--cyan);
+  }
+  .back:hover {
+    color: var(--accent);
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 0;
+    list-style: none;
+  }
+  .tags li {
+    padding: 2px 10px;
+    border: 1px solid color-mix(in srgb, var(--violet) 40%, var(--line));
+    background: color-mix(in srgb, var(--violet) 7%, transparent);
+    font-size: 0.78125rem;
+    color: var(--violet);
+  }
+  .title {
+    max-width: 20ch;
+    font-size: clamp(1.875rem, 5.4vw, 3.625rem);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.035em;
+    color: var(--hi);
+    text-wrap: balance;
+  }
+  .summary {
+    max-width: 58ch;
+    font-size: clamp(1rem, 1.7vw, 1.15625rem);
+    line-height: 1.65;
+    color: var(--fg);
+    text-wrap: pretty;
+  }
+
+  /*
+   * Status line: as wide as its segments. Dividers are 1px shadows that land on the frame's
+   * own border, and segments grow to fill their row, so a status line that wraps (tablets,
+   * small phones) never shows an empty cell or a doubled line.
+   */
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    align-self: flex-start;
+    max-width: 100%;
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    background: var(--bar);
+    font-size: 0.78125rem;
+    line-height: 1.4;
+  }
+  .mode {
+    display: flex;
+    align-items: center;
+    padding: 0 24px 0 14px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
+  }
+  .seg {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-grow: 1;
+    padding: 9px 16px;
+    box-shadow:
+      1px 0 0 var(--line),
+      0 -1px 0 var(--line);
+    color: var(--hi);
+    white-space: nowrap;
+  }
+  .seg .k {
+    color: var(--dim);
+  }
+  .seg time {
+    color: var(--amber);
+  }
+  .file {
+    color: var(--fg);
+  }
+  .enc {
+    color: var(--dim);
+  }
+  /* The prompt stays on one line; a long file name ends in an ellipsis instead of breaking. */
+  .hero :global(.prompt) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ================= reading column + pinned side column ================= */
+  .reader {
+    display: grid;
+    grid-template-columns: minmax(0, 740px);
+    gap: 24px 64px;
+  }
+  .more {
+    max-width: 740px;
+  }
+  @media (min-width: 1100px) {
+    .reader {
+      grid-template-columns: minmax(0, 740px) 230px;
+      justify-content: space-between;
+    }
+    .side {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      position: sticky;
+      top: 28px;
+      align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      max-height: calc(100dvh - 56px);
+      overflow-y: auto;
+    }
+    .reader > :not(.side) {
+      grid-column: 1;
+    }
+  }
+
+  /* Reading meter under the contents: a percentage counted by the scroll position, no script. */
+  .meter {
+    display: none;
+  }
+  @supports (animation-timeline: scroll()) {
+    @media (min-width: 1100px) {
+      .meter {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        font-size: 0.75rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--dim);
+        animation: read-meter linear both;
+      }
+      /* Its own rule, so the minifier cannot fold it into the shorthand (see .read-progress in global.css). */
+      .side .meter {
+        animation-timeline: scroll(root);
+      }
+    }
+  }
+  @property --pct {
+    syntax: '<integer>';
+    inherits: true;
+    initial-value: 0;
+  }
+  @keyframes read-meter {
+    to {
+      --pct: 100;
+    }
+  }
+  .meter-head {
+    display: flex;
+    justify-content: space-between;
+  }
+  .pct {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .pct::after {
+    counter-reset: pct var(--pct);
+    content: counter(pct) '%';
+  }
+  .bar {
+    display: block;
+    height: 3px;
+    background: var(--line);
+  }
+  .bar i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    box-shadow: var(--glow);
+    transform: scaleX(calc(var(--pct) / 100));
+    transform-origin: left;
+  }
+
+  /* ================= end of article ================= */
+  .end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 24px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--line);
+  }
+  .end-mark {
+    font-size: 0.875rem;
+    color: var(--dim);
+  }
+  .to-top:hover {
+    color: var(--accent);
+  }
+
+  /* Older / newer. */
+  .pager {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .pg {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 22px 22px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 5%, var(--surface)), var(--surface) 60%);
+    color: var(--fg);
+    text-decoration: none;
+    transition:
+      border-color 0.3s,
+      box-shadow 0.3s,
+      translate 0.3s var(--ease-out);
+  }
+  .pg.newer {
+    grid-column: 2;
+    align-items: flex-end;
+    text-align: right;
+  }
+  .pg-dir {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .pg-title {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--hi);
+    text-wrap: balance;
+    transition: color 0.25s;
+  }
+  .pg-meta {
+    display: flex;
+    gap: 14px;
+    font-size: 0.78125rem;
+    color: var(--dim);
+  }
+  .pg:hover,
+  .pg:focus-visible {
+    border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+    box-shadow: 0 24px 50px -34px color-mix(in srgb, var(--accent) 60%, transparent);
+    translate: 0 -3px;
+  }
+  .pg:hover .pg-title {
+    color: var(--accent);
+  }
+
+  /* ================= narrow screens ================= */
+  /* The decorative segments go first, so the facts stay on one row. */
+  @media (max-width: 879.98px) {
+    .enc {
+      display: none;
+    }
+  }
+  @media (max-width: 719.98px) {
+    .file {
+      display: none;
+    }
+    .seg {
+      padding: 8px 12px;
+    }
+  }
+  @media (max-width: 559.98px) {
+    .words {
+      display: none;
+    }
+    .pager {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .pg.newer {
+      grid-column: auto;
+    }
+  }
+  @media (max-width: 411.98px) {
+    .title {
+      font-size: 1.6875rem;
+    }
+    .mode {
+      padding: 0 20px 0 10px;
+    }
+    .status {
+      font-size: 0.75rem;
+    }
+    .seg {
+      padding: 7px 10px;
+      gap: 6px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pg,
+    .pg-title {
+      transition: none;
+    }
+    .pg:hover {
+      translate: none;
+    }
+  }
+</style>

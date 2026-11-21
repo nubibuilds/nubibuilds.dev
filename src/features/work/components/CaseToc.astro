@@ -1,0 +1,67 @@
+---
+/**
+ * Contents for a case study: the same thread as the article contents, with the four
+ * section colours used in the case study itself (problem, architecture, implementation, result).
+ *
+ * Below 1100px it is a collapsed box above the text (not sticky, so it never covers the text);
+ * from 1100px it is a sticky column beside the text, opened by ProseEnhance.
+ * The column itself is laid out by `.body` in CasePage.
+ */
+import TocTree from '@shared/ui/TocTree.astro';
+
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+  /** Heading above the list, in the page's language. */
+  label?: string;
+}
+
+const { headings, label = '# contents' } = Astro.props;
+const colors = ['var(--coral)', 'var(--cyan)', 'var(--violet)', 'var(--accent)'];
+const hasSections = headings.some((h) => h.depth === 2 && h.slug !== 'footnote-label');
+---
+
+{
+  hasSections && (
+    <details class="toc case-toc" data-toc>
+      <summary>{label}</summary>
+      <nav aria-label={label.replace(/^#\s*/, '')}>
+        <TocTree headings={headings} colors={colors} />
+      </nav>
+    </details>
+  )
+}
+
+<style>
+  /* Narrow: a collapsible box above the text. */
+  .case-toc {
+    min-width: 0;
+    padding: 0 16px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .case-toc[open] {
+    padding-bottom: 16px;
+  }
+  .case-toc nav {
+    padding-top: 4px;
+  }
+
+  /* Wide: a sticky column beside the text. */
+  @media (min-width: 1100px) {
+    .case-toc {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      max-height: calc(100dvh - 48px);
+      padding: 0;
+      overflow-y: auto;
+      border: 0;
+      background: none;
+    }
+    .case-toc summary {
+      /* Compact beside the text, but never under the 24px target size (WCAG 2.5.8). */
+      min-height: 24px;
+      margin-bottom: 8px;
+    }
+  }
+</style>
