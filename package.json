@@ -12,7 +12,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "lighthouse": "astro build && lhci autorun",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "deploy": "astro build && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "^0.4.7",
@@ -26,6 +27,7 @@
     "@axe-core/playwright": "^4.14.0",
     "@lhci/cli": "^0.16.1",
     "@playwright/test": "^1.65.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.166.0"
   }
 }
