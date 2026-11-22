@@ -76,8 +76,9 @@ Anything in `[SQUARE BRACKETS]` is a placeholder.
 The site runs on Cloudflare Workers (static assets) at `nubibuilds.dev`, configured in
 `wrangler.jsonc`.
 
-- **Automatic:** every push to `main` is built and deployed by Cloudflare Workers Builds
-  (build command `pnpm build`, deploy command `npx wrangler deploy`). It does not wait for CI.
+- **Automatic:** on every push to `main`, the `deploy` job in `.github/workflows/ci.yml` deploys the
+  tested build with `cloudflare/wrangler-action`, only after the type-check, tests and Lighthouse pass.
+  Needs the repository secret `CLOUDFLARE_API_TOKEN`.
 - **Manual:** `pnpm run deploy` builds and deploys from your machine (first time: `pnpm exec wrangler login`).
   Not `pnpm deploy`, which is a pnpm built-in command.
 - **Vercel** (alternative): import the repository; Astro is detected automatically.

@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "nubibuilds",
+  // Cloudflare account to deploy to. Not a secret: the API token (GitHub secret CLOUDFLARE_API_TOKEN) is.
+  "account_id": "712d4195a2c387c8232c816fc39435bb",
   "compatibility_date": "2026-11-22",
   // Static site: Astro builds to dist/, served as Workers static assets (no Worker script).
   // Headers come from public/_headers.

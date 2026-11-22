@@ -124,7 +124,7 @@ The 404 page is always `noindex`, whatever this setting says.
 
 The site runs on Cloudflare Workers as static assets, on the custom domain `nubibuilds.dev`. `wrangler.jsonc` holds the setup: files from `dist/`, `404.html` for unknown paths, and no `workers.dev` or preview addresses, so the site has one address.
 
-- **Automatic:** the Worker `nubibuilds` is connected to this repository with Cloudflare Workers Builds (dashboard: Workers & Pages → `nubibuilds` → Settings → Build). Every push to `main` runs `pnpm build`, then `npx wrangler deploy`. It runs separately from GitHub CI and does not wait for the tests to pass.
+- **Automatic:** GitHub Actions deploys every push to `main`, and only when CI passes. In `.github/workflows/ci.yml`, the `build` job type-checks, builds, and runs the end-to-end tests and Lighthouse, then uploads `dist/`. The `deploy` job then publishes that same `dist/` with `cloudflare/wrangler-action`. Pull requests are checked but never deployed. The job needs the repository secret `CLOUDFLARE_API_TOKEN`: a Cloudflare API token made from the *Edit Cloudflare Workers* template. The account ID is `account_id` in `wrangler.jsonc`.
 - **Manual:** `pnpm run deploy` builds and deploys from your machine. Log in once with `pnpm exec wrangler login`. Use `pnpm run deploy`, not `pnpm deploy`: the latter is a pnpm built-in command.
 - **Vercel** (alternative): import the repository; Astro is detected automatically.
 
