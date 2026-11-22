@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the release
+  actions: read # look up the CI run of the tagged commit
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Full history and tags: needed for the commit list and the check against main.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag
+        run: |
+          version="v$(jq -r .version package.json)"
+          if [ "$TAG" != "$version" ]; then
+            echo "::error::Tag $TAG does not match the version in package.json ($version)."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::Tag $TAG is not on main."
+            exit 1
+          fi
+
+      # The CI run on main also deploys, so a release only appears once its commit is live.
+      # A tag pushed together with its commit has to wait for that run to start and finish.
+      - name: Wait for CI
+        run: |
+          sha="$(git rev-parse HEAD)"
+          deadline=$((SECONDS + 1800))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            state="$(gh run list --workflow ci.yml --branch main --event push --commit "$sha" \
+              --limit 1 --json status,conclusion --jq '.[0] | "\(.status) \(.conclusion)"')"
+            case "$state" in
+              "completed success")
+                echo "CI passed for $sha."
+                exit 0 ;;
+              completed*)
+                echo "::error::CI did not pass for $sha ($state)."
+                exit 1 ;;
+              ""|null*)
+                if [ "$SECONDS" -gt 180 ]; then
+                  echo "::error::No CI run on main for $sha. Tag the last commit of a push."
+                  exit 1
+                fi ;;
+            esac
+            echo "Waiting for CI (${state:-not started})"
+            sleep 20
+          done
+          echo "::error::CI did not finish in time for $sha."
+          exit 1
+
+      - name: Create the release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; leaving it as it is."
+            exit 0
+          fi
+
+          # A tag such as v1.0.0-beta.1 is a pre-release; a stable release compares with the last stable one.
+          args=()
+          exclude=()
+          if [[ "$TAG" == *-* ]]; then
+            args+=(--prerelease)
+          else
+            exclude=(--exclude '*-*')
+          fi
+
+          notes="$RUNNER_TEMP/notes.md"
+          previous="$(git describe --tags --abbrev=0 --match 'v*' "${exclude[@]}" HEAD^ 2>/dev/null || true)"
+          {
+            echo "## Changes"
+            echo
+            # Leaves out version bump commits, whose message is only a version number.
+            git log --no-merges --extended-regexp --invert-grep --grep='^[0-9]+\.[0-9]+\.[0-9]+[^ ]*$' \
+              --format='- %s (%h)' "${previous:+$previous..}HEAD"
+            if [ -n "$previous" ]; then
+              echo
+              echo "**Full changelog:** $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/$previous...$TAG"
+            fi
+          } > "$notes"
+
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes" "${args[@]}"

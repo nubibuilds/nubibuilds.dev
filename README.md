@@ -82,6 +82,8 @@ The site runs on Cloudflare Workers (static assets) at `nubibuilds.dev`, configu
 - **Manual:** `pnpm run deploy` builds and deploys from your machine (first time: `pnpm exec wrangler login`).
   Not `pnpm deploy`, which is a pnpm built-in command.
 - **Vercel** (alternative): import the repository; Astro is detected automatically.
+- **Releases:** `pnpm version patch` (or `minor`, `major`), then `git push origin main --follow-tags`.
+  `.github/workflows/release.yml` creates the GitHub release once CI passes.
 
 No adapter is needed: the site is static. `.github/workflows/ci.yml` runs the type-check, build,
 end-to-end tests and Lighthouse on every push to `main` and on every pull request.

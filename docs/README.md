@@ -130,6 +130,17 @@ The site runs on Cloudflare Workers as static assets, on the custom domain `nubi
 
 No adapter is needed: the site is static. Cache and security headers are in `public/_headers` (Cloudflare, Netlify) and `vercel.json` (Vercel).
 
+## Releasing
+
+Pushing a version tag creates a GitHub release. From an up-to-date `main` with nothing uncommitted:
+
+```sh
+pnpm version patch        # or minor / major: updates package.json, commits and tags
+git push origin main --follow-tags
+```
+
+`.github/workflows/release.yml` then checks that the tag matches `version` in `package.json` and is on `main`, waits until CI and the deploy succeed for that commit, and creates the release with the list of commits since the previous one. A tag with a hyphen, such as `v1.0.0-beta.1`, becomes a pre-release. An existing release is never changed, and its notes can be edited on GitHub afterwards.
+
 ## Testing and CI
 
 - **End-to-end tests** (`tests/e2e/site.spec.ts`, Playwright) cover navigation, the theme toggle, the work filter, article features, the language switch on articles and case studies, search, the terminal, and sideways scrolling at desktop and phone sizes. First run only: `pnpm exec playwright install chromium`.
