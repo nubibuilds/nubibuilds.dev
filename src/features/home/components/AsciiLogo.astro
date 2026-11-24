@@ -16,9 +16,20 @@ const BUILDS = `██████╗ ██╗   ██╗██╗██╗   
 ---
 
 <div class="logo">
-  <div class="row" role="img" aria-label="NubiBuilds">
-    <pre class="art nubi" aria-hidden="true">{NUBI}</pre>
-    <pre class="art builds" aria-hidden="true">{BUILDS}</pre>
+  <div class="row" role="img" aria-label="NubiBuilds" data-motion>
+    {
+      [
+        { name: 'nubi', art: NUBI },
+        { name: 'builds', art: BUILDS },
+      ].map(({ name, art }) => (
+        <div class:list={['art', name]} aria-hidden="true">
+          <pre>{art}</pre>
+          <div class="shine">
+            <pre>{art}</pre>
+          </div>
+        </div>
+      ))
+    }
   </div>
 </div>
 
@@ -36,65 +47,80 @@ const BUILDS = `██████╗ ██╗   ██╗██╗██╗   
     filter: var(--glow-drop);
   }
   .art {
+    position: relative;
+    /* Keeps the moving shine below from widening the scrollable logo. */
+    overflow: clip;
+  }
+  pre {
     font-family: var(--font-ascii);
     font-size: min(22px, 2.15cqw);
     line-height: 1.2;
     white-space: pre;
   }
-  /* Solid colours first; where text clipping works, a gradient with a slow light sweep. */
   .nubi {
     color: var(--accent);
+    --shine: color-mix(in srgb, var(--accent) 45%, var(--hi));
   }
   .builds {
     color: var(--hi);
+    --shine: color-mix(in srgb, var(--hi) 35%, var(--accent));
   }
-  @supports (background-clip: text) or (-webkit-background-clip: text) {
-    .art {
-      background-size: 300% 100%;
-      background-position: 100% 0;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
+  /*
+   * A slow light sweep. A lighter copy of the letters shows through a soft window (.shine) that
+   * slides across while the copy inside slides back by the same amount, so the letters stay put
+   * and only the light moves. Both move by transform alone, which the compositor runs without
+   * repainting the logo; animating a gradient's background-position repainted it every frame.
+   */
+  .shine {
+    display: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .shine {
+      display: block;
+      position: absolute;
+      inset: 0;
+      overflow: clip;
+      color: var(--shine);
+      mask-image: linear-gradient(100deg, transparent 26%, #000 50%, transparent 74%);
+      mask-repeat: no-repeat;
+      pointer-events: none;
+      user-select: none;
+      transform: translateX(-106%);
+      animation: sweep 7s ease-in-out 0.6s infinite;
     }
-    .nubi {
-      background-image: linear-gradient(
-        100deg,
-        var(--accent) 0 40%,
-        color-mix(in srgb, var(--accent) 45%, var(--hi)) 48%,
-        var(--accent) 56% 100%
-      );
+    .shine pre {
+      transform: translateX(106%);
+      animation: sweep-back 7s ease-in-out 0.6s infinite;
     }
-    .builds {
-      background-image: linear-gradient(
-        100deg,
-        var(--hi) 0 40%,
-        color-mix(in srgb, var(--hi) 35%, var(--accent)) 48%,
-        var(--hi) 56% 100%
-      );
-    }
-    @media (prefers-reduced-motion: no-preference) {
-      .art {
-        animation: sweep 7s ease-in-out 0.6s infinite;
-      }
-      .builds {
-        animation-delay: 0.9s;
-      }
+    .builds .shine,
+    .builds .shine pre {
+      animation-delay: 0.9s;
     }
   }
+  /* The window starts just off the left edge and ends just off the right, then rests. */
   @keyframes sweep {
     0% {
-      background-position: 100% 0;
+      transform: translateX(-106%);
     }
     45%,
     100% {
-      background-position: 0 0;
+      transform: translateX(94%);
+    }
+  }
+  @keyframes sweep-back {
+    0% {
+      transform: translateX(106%);
+    }
+    45%,
+    100% {
+      transform: translateX(-94%);
     }
   }
   @container logo (max-width: 620px) {
     .row {
       flex-direction: column;
     }
-    .art {
+    pre {
       font-size: min(18px, 3.6cqw);
     }
   }

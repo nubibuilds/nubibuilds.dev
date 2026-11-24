@@ -136,7 +136,7 @@ const x = (i: number) => `${(((i + 0.5) / steps.length) * 100).toFixed(3)}%`;
 
 <style is:inline set:html={motion}></style>
 
-<div class="finale" data-cta style={`--steps:${steps.length}`}>
+<div class="finale" data-cta data-motion style={`--steps:${steps.length}`}>
   {corners.map((k) => <span class={`corner ${k.c}`} style={`--dx:${k.dx};--dy:${k.dy}`} aria-hidden="true" />)}
 
   <div class="pitch">

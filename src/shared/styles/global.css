@@ -279,6 +279,21 @@ main {
   navigation: auto;
 }
 
+/*
+ * Decorative loops marked `data-motion` stop while off screen (BaseLayout sets `data-offscreen`).
+ * Several animate what the compositor cannot (colours, shadows, SVG strokes, widths), so every
+ * frame they run costs layout and paint on the main thread, seen or not, and that competes with
+ * scrolling.
+ */
+[data-offscreen],
+[data-offscreen]::before,
+[data-offscreen]::after,
+[data-offscreen] *,
+[data-offscreen] *::before,
+[data-offscreen] *::after {
+  animation-play-state: paused !important;
+}
+
 /* Fade-and-rise as an element scrolls into view. Pure CSS; no-op where unsupported. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {

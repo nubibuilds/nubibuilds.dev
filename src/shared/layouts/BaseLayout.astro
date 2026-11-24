@@ -134,6 +134,20 @@ const jsonLd = {
   </body>
 </html>
 
+<script>
+  // Pause decorative loops while they are off screen (see `[data-offscreen]` in global.css).
+  const motion = document.querySelectorAll('[data-motion]');
+  if (motion.length && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) entry.target.toggleAttribute('data-offscreen', !entry.isIntersecting);
+      },
+      { rootMargin: '100px 0px' },
+    );
+    motion.forEach((el) => io.observe(el));
+  }
+</script>
+
 <style>
   /* Hidden above the page by its own height, so it stays hidden at any text size. */
   .skip {
