@@ -138,15 +138,15 @@ Aturan yang ketat ini ada untungnya. Karena setiap studi kasus pasti punya empat
 
 ### Fokus keyboard yang hilang dari layar
 
-Bug yang paling bikin penasaran justru bug kecil. Supaya browser tidak bekerja sia-sia, setiap section di bawah layar pertama memakai `content-visibility: auto`. Browser melewati layout section itu sampai hampir terlihat, dan sementara itu memakai perkiraan tinggi 640px.
+Bug yang paling bikin penasaran justru bug kecil. Supaya browser tidak bekerja sia-sia, setiap section di bawah layar pertama dulu memakai `content-visibility: auto`. Browser melewati layout section itu sampai hampir terlihat, dan sementara itu memakai perkiraan tinggi 640px.
 
 Lalu salah satu tes aksesibilitas mulai gagal, tapi tidak setiap kali. Tesnya sederhana: tekan <kbd>Tab</kbd> berulang kali dan pastikan setiap elemen yang mendapat fokus terlihat di layar. Kadang lolos, kadang tidak.
 
 Penyebabnya ada di perkiraan tinggi tadi. Saat fokus masuk ke section yang belum di-layout, browser menggulir berdasarkan angka 640px. Begitu tinggi aslinya diketahui, elemen yang sedang difokus sudah terdorong ke bawah layar. Pengguna keyboard kehilangan jejak di mana mereka berada, dan ini melanggar WCAG 2.4.11.
 
-Perbaikannya hanya beberapa baris. Dua frame setelah fokus berpindah, ketika layout sudah selesai, posisi elemen diperiksa ulang. Kalau ternyata ada di luar layar, elemen itu digulir kembali ke tempat yang terlihat:
+Perbaikannya waktu itu hanya beberapa baris. Dua frame setelah fokus berpindah, ketika layout sudah selesai, posisi elemen diperiksa ulang. Kalau ternyata ada di luar layar, elemen itu digulir kembali ke tempat yang terlihat:
 
-```ts title="src/shared/ui/Section.astro" {4-5,8-9}
+```ts {4-5,8-9}
 document.addEventListener('focusin', (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement) || !target.closest('.section')) return;
@@ -165,6 +165,8 @@ document.addEventListener('focusin', (event) => {
 > Syarat "seluruhnya di luar layar" itu penting. Blok kode yang panjang memang wajar hanya terlihat sebagian. Kalau setiap elemen yang terpotong ikut digulir, halaman akan melompat setiap kali <kbd>Tab</kbd> ditekan.
 
 Tesnya juga saya sesuaikan: posisi elemen diukur ulang hingga 500 ms sebelum dinyatakan gagal. Sejak itu hasilnya stabil.
+
+Pada akhirnya `content-visibility` dihapus sama sekali, begitu juga perbaikan di atas. Scroll terasa patah-patah, jadi saya ukur berapa yang sebenarnya dihemat oleh pengaturan itu. Ternyata biayanya lebih besar daripada manfaatnya. Di ponsel, halaman about bertambah tinggi sekitar 1.500px selama di-scroll, karena setiap section mengganti perkiraan 640px dengan tinggi aslinya. Setiap section yang kembali ke layar juga harus digambar ulang dari awal. Tanpa pengaturan itu, scroll di halaman utama butuh sekitar 45% lebih sedikit kerja raster, dan fokus tidak punya celah lagi untuk tergelincir.
 
 ### Dikerjakan bersama Claude Code
 

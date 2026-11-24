@@ -138,15 +138,15 @@ The strictness pays off. Because every case study has the same four parts, the p
 
 ### Keyboard focus that slipped off screen
 
-The bug that kept me most curious was a small one. To save the browser work, every section below the first screen uses `content-visibility: auto`. The browser skips laying out a section until it is nearly in view, and assumes it is 640px tall in the meantime.
+The bug that kept me most curious was a small one. To save the browser work, every section below the first screen used `content-visibility: auto`. The browser skipped laying out a section until it was nearly in view, and assumed it was 640px tall in the meantime.
 
 Then one of the accessibility tests started failing, but not every time. The test is simple: press <kbd>Tab</kbd> again and again, and check that every focused element is on screen. Sometimes it passed, sometimes it did not.
 
 The cause was that height estimate. When focus moved into a section that had not been laid out yet, the browser scrolled based on 640px. Once the real height was known, the focused element had been pushed below the fold. A keyboard user lost track of where they were, which fails WCAG 2.4.11.
 
-The fix is a few lines. Two frames after focus moves, once layout has settled, the element's position is checked again. If it is out of view, it is scrolled back:
+The fix was a few lines. Two frames after focus moves, once layout has settled, the element's position is checked again. If it is out of view, it is scrolled back:
 
-```ts title="src/shared/ui/Section.astro" {4-5,8-9}
+```ts {4-5,8-9}
 document.addEventListener('focusin', (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement) || !target.closest('.section')) return;
@@ -165,6 +165,8 @@ document.addEventListener('focusin', (event) => {
 > The "wholly out of view" condition matters. A long code block is often only partly visible, and that is fine. If every partly hidden element were scrolled, the page would jump on every press of <kbd>Tab</kbd>.
 
 I adjusted the test as well: it re-measures an element for up to 500 ms before calling it off screen. It has been stable since.
+
+In the end, `content-visibility` went altogether, and the fix above with it. Scrolling felt choppy, so I measured what the setting actually saved. It cost more than it gave. On a phone, the about page grew by about 1,500px while it was scrolled, as each section swapped the 640px estimate for its real height. Every section that came back on screen also had to be drawn again from scratch. Without it, scrolling the home page takes about 45% less raster work, and focus has nothing left to slip on.
 
 ### Built with Claude Code
 

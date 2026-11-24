@@ -25,28 +25,6 @@ const { id, bordered = true, narrow = false } = Astro.props;
   </div>
 </section>
 
-<script>
-  /*
-   * Bordered sections skip layout while off-screen (`content-visibility: auto`, below). When
-   * keyboard focus jumps into one that has not been laid out yet, the browser may scroll to its
-   * estimated 640px height and, once the real height is known, leave the focused element below
-   * the fold (WCAG 2.4.11, focus not obscured). After layout settles, bring it back into view.
-   * Nothing happens when the browser already scrolled it on screen.
-   */
-  document.addEventListener('focusin', (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement) || !target.closest('.section')) return;
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        if (document.activeElement !== target) return;
-        const rect = target.getBoundingClientRect();
-        // Only when wholly out of view: a tall element (a long code block) may be partly visible on purpose.
-        if (rect.top >= window.innerHeight || rect.bottom <= 0) target.scrollIntoView({ block: 'nearest' });
-      }),
-    );
-  });
-</script>
-
 <style>
   .section {
     position: relative;
@@ -58,11 +36,13 @@ const { id, bordered = true, narrow = false } = Astro.props;
     overflow: hidden;
     overflow: clip;
   }
+  /*
+   * No `content-visibility: auto` here, on purpose. It was tried: sections laid out late swapped a
+   * height estimate for their real height while scrolling (the page grew by up to ~1,500px on a
+   * phone), and each one coming back on screen had to be painted again, which made scrolling choppy.
+   */
   .bordered {
     border-top: 1px dashed var(--line);
-    /* Every section after the first: skip layout, paint and ornament animation while off-screen. */
-    content-visibility: auto;
-    contain-intrinsic-size: auto 640px;
   }
   .orn {
     position: absolute;

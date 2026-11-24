@@ -29,11 +29,9 @@ const WORK_LINK = '[data-showcase] .wc-title a';
 const ARTICLE_LINK = 'main ul.rows a.row';
 
 /**
- * What has focus, and whether a focus indicator is drawn for it. Sections use
- * `content-visibility: auto` (src/shared/ui/Section.astro): when focus jumps into one that has not
- * been drawn yet, its real height replaces the 640px estimate and scroll anchoring settles over a
- * few frames (longer on a busy machine). So an element that looks off screen is measured again,
- * for up to half a second, before it counts as off screen.
+ * What has focus, and whether a focus indicator is drawn for it. Scrolling to a newly focused
+ * element can take a few frames to settle (longer on a busy machine), so an element that looks
+ * off screen is measured again, for up to half a second, before it counts as off screen.
  */
 const focusInfo = (page: Page) =>
   page.evaluate(async () => {
