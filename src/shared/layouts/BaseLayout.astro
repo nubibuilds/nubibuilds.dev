@@ -146,6 +146,27 @@ const jsonLd = {
     );
     motion.forEach((el) => io.observe(el));
   }
+
+  /*
+   * Mark the page while it is being scrolled, until it has been still for a moment. Loops that
+   * repaint every frame (`data-motion="paint"`) hold still meanwhile, and scripted motion can
+   * check the mark too. On iOS each repaint is sent to the process that also runs the scrolling,
+   * so painting during a scroll makes the scroll itself stutter.
+   */
+  const root = document.documentElement;
+  let still: number | undefined;
+  addEventListener(
+    'scroll',
+    () => {
+      if (still === undefined) root.setAttribute('data-scrolling', '');
+      clearTimeout(still);
+      still = window.setTimeout(() => {
+        still = undefined;
+        root.removeAttribute('data-scrolling');
+      }, 250);
+    },
+    { passive: true },
+  );
 </script>
 
 <style>

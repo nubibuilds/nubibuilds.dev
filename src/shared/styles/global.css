@@ -281,16 +281,22 @@ main {
 
 /*
  * Decorative loops marked `data-motion` stop while off screen (BaseLayout sets `data-offscreen`).
- * Several animate what the compositor cannot (colours, shadows, SVG strokes, widths), so every
- * frame they run costs layout and paint on the main thread, seen or not, and that competes with
- * scrolling.
+ * Those marked `data-motion="paint"` animate what the compositor cannot (colours, shadows, SVG
+ * strokes, widths): every frame they run costs layout and paint on the main thread, so they also
+ * hold still while the page is being scrolled (BaseLayout sets `data-scrolling`).
  */
 [data-offscreen],
 [data-offscreen]::before,
 [data-offscreen]::after,
 [data-offscreen] *,
 [data-offscreen] *::before,
-[data-offscreen] *::after {
+[data-offscreen] *::after,
+[data-scrolling] [data-motion='paint'],
+[data-scrolling] [data-motion='paint']::before,
+[data-scrolling] [data-motion='paint']::after,
+[data-scrolling] [data-motion='paint'] *,
+[data-scrolling] [data-motion='paint'] *::before,
+[data-scrolling] [data-motion='paint'] *::after {
   animation-play-state: paused !important;
 }
 

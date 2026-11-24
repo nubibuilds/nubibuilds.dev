@@ -51,7 +51,7 @@ const meter = (seed: number) => Array.from({ length: 22 }, (_, k) => 22 + ((seed
           </p>
 
           <div class="meta">
-            <p class="pills">
+            <p class="pills" data-motion>
               {
                 summary.map((s) => (
                   <span class:list={['pill', s.cls]}>
@@ -83,7 +83,7 @@ const meter = (seed: number) => Array.from({ length: 22 }, (_, k) => 22 + ((seed
             </h2>
             <div class="run-grid" style={`--cols:${Math.min(3, running.length)}`}>
               {running.map((item) => (
-                <article class="card run reveal" style={`--c:${item.color};--i:${item.i}`}>
+                <article class="card run reveal" style={`--c:${item.color};--i:${item.i}`} data-motion>
                   <header class="run-head">
                     <h3 class="plabel">
                       <span class="led" aria-hidden="true" />
@@ -117,7 +117,7 @@ const meter = (seed: number) => Array.from({ length: 22 }, (_, k) => 22 + ((seed
               <span class="ps">$</span> netstat --listening <span class="n">{listening.length}</span>
             </h2>
             {listening.map((item) => (
-              <article class="card listen reveal" style={`--c:${item.color};--i:${item.i}`}>
+              <article class="card listen reveal" style={`--c:${item.color};--i:${item.i}`} data-motion>
                 <div class="radar" aria-hidden="true">
                   <span class="led" />
                 </div>
@@ -197,13 +197,23 @@ const meter = (seed: number) => Array.from({ length: 22 }, (_, k) => 22 + ((seed
     window.setInterval(tick, 15_000);
   }
 
-  // Type the running labels out one after another. Without JS, or with reduced motion, the first one stays.
+  /*
+   * Type the running labels out one after another. Without JS, or with reduced motion, the first one stays.
+   * Every keystroke repaints the line, so typing waits while the line is off screen, the tab is hidden or
+   * the page is being scrolled (BaseLayout marks that with `data-scrolling`).
+   */
   const word = document.querySelector<HTMLElement>('[data-type]');
   if (word && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const list: { w: string; c: string }[] = JSON.parse(word.dataset.type ?? '[]');
     if (list.length > 1) {
       let index = 0;
-      const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+      let onScreen = true;
+      new IntersectionObserver(([entry]) => (onScreen = entry.isIntersecting)).observe(word);
+      const held = () => !onScreen || document.hidden || document.documentElement.hasAttribute('data-scrolling');
+      const wait = async (ms: number) => {
+        await new Promise((resolve) => window.setTimeout(resolve, ms));
+        while (held()) await new Promise((resolve) => window.setTimeout(resolve, 200));
+      };
       const run = async () => {
         for (;;) {
           await wait(2400);
