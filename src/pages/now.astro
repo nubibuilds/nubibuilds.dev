@@ -83,8 +83,8 @@ const meter = (seed: number) => Array.from({ length: 22 }, (_, k) => 22 + ((seed
             </h2>
             <div class="run-grid" style={`--cols:${Math.min(3, running.length)}`}>
               {running.map((item) => (
-                <article class="card run reveal" style={`--c:${item.color};--i:${item.i}`} data-motion>
-                  <header class="run-head">
+                <article class="card run reveal" style={`--c:${item.color};--i:${item.i}`}>
+                  <header class="run-head" data-motion>
                     <h3 class="plabel">
                       <span class="led" aria-hidden="true" />
                       {item.label}
@@ -94,7 +94,7 @@ const meter = (seed: number) => Array.from({ length: 22 }, (_, k) => 22 + ((seed
                     </span>
                   </header>
                   <p class="text">{item.text}</p>
-                  <footer class="run-foot" aria-hidden="true">
+                  <footer class="run-foot" aria-hidden="true" data-motion>
                     <span class="meter">
                       {meter(item.i + 1).map((h, k) => (
                         <i style={`--h:${h}%;--k:${k}`} />
@@ -117,8 +117,8 @@ const meter = (seed: number) => Array.from({ length: 22 }, (_, k) => 22 + ((seed
               <span class="ps">$</span> netstat --listening <span class="n">{listening.length}</span>
             </h2>
             {listening.map((item) => (
-              <article class="card listen reveal" style={`--c:${item.color};--i:${item.i}`} data-motion>
-                <div class="radar" aria-hidden="true">
+              <article class="card listen reveal" style={`--c:${item.color};--i:${item.i}`}>
+                <div class="radar" aria-hidden="true" data-motion>
                   <span class="led" />
                 </div>
                 <div class="listen-main">

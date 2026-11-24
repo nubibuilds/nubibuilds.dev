@@ -52,7 +52,7 @@ const commits = journey.map((item, i) => ({
   <ol class="log">
     {
       commits.map((c) => (
-        <li style={`--c:${c.color};--n:${c.next}`} class:list={{ head: c.head, root: c.root }}>
+        <li style={`--c:${c.color};--n:${c.next}`} class:list={['reveal', { head: c.head, root: c.root }]}>
           <span class="node" aria-hidden="true" />
           <div class="commit">
             <p class="meta" aria-hidden="true">
@@ -270,18 +270,9 @@ const commits = journey.map((item, i) => ({
     .head .node::after {
       animation: ripple 2.6s ease-out infinite;
     }
-    /* Commits rise in and the rail draws itself as you scroll (where supported). */
-    @supports (animation-timeline: view()) {
-      li {
-        animation: rise linear both;
-        animation-timeline: view();
-        animation-range: entry 0% entry 40%;
-      }
-      li:not(:last-child)::after {
-        animation: draw linear both;
-        animation-timeline: view();
-        animation-range: entry 10% cover 35%;
-      }
+    /* Commits rise in as they are first seen (`.reveal`, global.css), and the rail draws on to the next. */
+    li:is([data-reveal='waiting'], [data-reveal='playing']):not(:last-child)::after {
+      animation: draw 0.9s var(--ease-out) 0.2s backwards;
     }
   }
   @keyframes ripple {
@@ -292,12 +283,6 @@ const commits = journey.map((item, i) => ({
     100% {
       opacity: 0;
       transform: scale(2.6);
-    }
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(24px);
     }
   }
   @keyframes draw {

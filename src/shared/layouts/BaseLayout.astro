@@ -147,6 +147,24 @@ const jsonLd = {
     motion.forEach((el) => io.observe(el));
   }
 
+  // Play reveal animations the first time each element below the screen is seen (see `.reveal` in global.css).
+  const reveal = document.querySelectorAll<HTMLElement>('.reveal, [data-reveal]');
+  if (reveal.length && 'IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const seen = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        seen.unobserve(entry.target);
+        (entry.target as HTMLElement).dataset.reveal = 'playing';
+      }
+    });
+    for (const el of reveal) {
+      // Already on screen, or above it: leave it as it is.
+      if (el.getBoundingClientRect().top < window.innerHeight) continue;
+      el.dataset.reveal = 'waiting';
+      seen.observe(el);
+    }
+  }
+
   /*
    * Mark the page while it is being scrolled, until it has been still for a moment. Loops that
    * repaint every frame (`data-motion="paint"`) hold still meanwhile, and scripted motion can

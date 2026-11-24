@@ -300,20 +300,39 @@ main {
   animation-play-state: paused !important;
 }
 
-/* Fade-and-rise as an element scrolls into view. Pure CSS; no-op where unsupported. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .reveal {
-      animation: reveal linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 40%;
-    }
+/*
+ * Fade-and-rise the first time an element scrolls into view. BaseLayout marks each `.reveal` (and
+ * each `[data-reveal]`, which brings its own animation) that starts below the screen as
+ * `data-reveal="waiting"`, then `"playing"` once it is seen. Elements already on screen, pages
+ * without JavaScript and reduced motion are left alone.
+ *
+ * Time-based on purpose, not tied to the scroll position: Safari runs scroll-driven animations on
+ * the main thread, which stutters against its scrolling, while these run on the compositor.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal:is([data-reveal='waiting'], [data-reveal='playing']) {
+    animation: reveal 0.7s var(--ease-out) backwards;
+  }
+}
+/* Waiting: every animation inside holds its first frame, so nothing plays before it is seen. */
+[data-reveal='waiting'],
+[data-reveal='waiting']::before,
+[data-reveal='waiting']::after,
+[data-reveal='waiting'] *,
+[data-reveal='waiting'] *::before,
+[data-reveal='waiting'] *::after {
+  animation-play-state: paused !important;
+}
+@media print {
+  [data-reveal],
+  [data-reveal] * {
+    animation: none !important;
   }
 }
 @keyframes reveal {
   from {
     opacity: 0;
-    transform: translateY(28px);
+    translate: 0 28px;
   }
 }
 
