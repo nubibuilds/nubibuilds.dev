@@ -71,6 +71,9 @@ const file = data.cover ? 'preview.png' : videoInWindow ? 'walkthrough.mp4' : '-
     --ry: 0deg;
     position: relative;
     display: grid;
+    /* minmax(0, …): otherwise the nowrap window path sets the column's minimum and a long slug
+       pushes the window past the screen on phones. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 24px;
     perspective: 1600px;
   }
