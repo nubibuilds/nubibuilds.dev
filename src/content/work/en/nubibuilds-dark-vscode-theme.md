@@ -7,7 +7,7 @@ timeline: "14 Nov 2026 → 15 Nov 2026"
 status: "Live (v0.1.1)"
 stack: ["VS Code", "JavaScript", "Node.js"]
 order: 0
-draft: true
+draft: false
 publishedAt: 2026-11-26
 
 highlights:
