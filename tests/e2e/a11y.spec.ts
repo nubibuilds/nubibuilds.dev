@@ -133,6 +133,22 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Space');
     expect(await theme()).not.toBe(first);
   });
+
+  test('the back-to-top button shows once scrolled, and returns focus to the top', async ({ page }) => {
+    await page.goto('/about');
+    const button = page.locator('[data-to-top]');
+    await expect(button).toBeHidden();
+
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(button).toBeVisible();
+    await expect(button).toHaveAccessibleName('Back to top');
+
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await expect(page.locator('a.skip')).toBeFocused();
+    await expect(button).toBeHidden();
+  });
 });
 
 test.describe('terminal dialog', () => {

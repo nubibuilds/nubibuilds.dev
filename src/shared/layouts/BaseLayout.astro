@@ -4,6 +4,7 @@ import '@fontsource/jetbrains-mono/700.css';
 import '../styles/global.css';
 import SiteHeader from '@shared/ui/SiteHeader.astro';
 import SiteFooter from '@shared/ui/SiteFooter.astro';
+import BackToTop from '@shared/ui/BackToTop.astro';
 import { site } from '@shared/config/site';
 import { frameText } from '@shared/lib/i18n';
 import { absoluteUrl } from '@shared/lib/xml';
@@ -130,6 +131,7 @@ const jsonLd = {
       <slot />
     </main>
     <SiteFooter path={path} lang={lang} />
+    <BackToTop lang={lang} />
     <slot name="overlays" />
   </body>
 </html>

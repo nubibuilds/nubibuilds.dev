@@ -22,6 +22,7 @@ The first `Tab` on every page shows a **Skip to content** link (**Langsung ke ko
 | Part | Element | Keyboard behaviour |
 | --- | --- | --- |
 | Header tabs, footer links, cards, lists | `<a>` | Tab order follows the page; the current tab has `aria-current="page"` |
+| Back-to-top button (`↑ top`) | `<button>` | Shows in the bottom-right corner once the page is scrolled more than one screen; comes last in the tab order. Enter or Space scrolls to the top and moves focus to the skip link, so the next Tab starts from the top of the page |
 | Theme and terminal buttons | `<button>` | Enter and Space; the theme button's name says which theme is active ("theme: dark, switch to light") |
 | Language switch | `<nav>` with links | The current language is marked with `aria-current`; a missing translation is plain text, not a link |
 | Interactive terminal | `<dialog>` opened with `showModal()` | Focus moves to the prompt; the rest of the page is inert while it is open; Esc closes it and focus returns to the button that opened it |
@@ -42,7 +43,7 @@ Rules the code follows:
 - Native elements first: `<a>` for navigation, `<button>` for actions, `<dialog>` for overlays, `<details>` for disclosure. No clickable `<div>` or `<span>`.
 - No positive `tabindex`. `tabindex="0"` is used only for scrollable regions; `tabindex="-1"` only on `<main>`, as the target of the skip link.
 - One focus style for everything: a 2px outline in `--accent`, defined once in `src/shared/styles/global.css` (`:focus-visible`). Text fields that have no outline of their own are marked on their wrapper (the search field gets the outline; the terminal prompt gets a rule above it).
-- Nothing is sticky over the content except the contents list, which sits beside the text, so a focused element is never covered.
+- Nothing is sticky over the content except the contents list, which sits beside the text, and the back-to-top button. The page keeps `scroll-padding-bottom` as tall as that button, so an element focused near the bottom of the screen is scrolled clear of it (WCAG 2.4.11).
 - Animation stops for visitors who ask for reduced motion in their system settings.
 
 ## Testing
@@ -52,7 +53,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-`tests/e2e/a11y.spec.ts` covers: the skip link; a focus indicator on every tab stop of every top-level page; backwards navigation; the terminal dialog (opening, staying inside, closing, focus returning, completion, turning off the `` ` `` shortcut); the image viewer; the copy button's announcement; search; and reflow at 320px.
+`tests/e2e/a11y.spec.ts` covers: the skip link; the back-to-top button; a focus indicator on every tab stop of every top-level page; backwards navigation; the terminal dialog (opening, staying inside, closing, focus returning, completion, turning off the `` ` `` shortcut); the image viewer; the copy button's announcement; search; and reflow at 320px.
 
 The same file runs an **axe-core** scan of every top-level page, one case study and one article, in both themes, against the WCAG 2.0, 2.1 and 2.2 A and AA rules. It uses the `@axe-core/playwright` dev dependency and reports the violations of every page in one run.
 

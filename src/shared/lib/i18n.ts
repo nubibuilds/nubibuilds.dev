@@ -33,6 +33,7 @@ const FRAME_TEXT = {
     closeTerminal: 'Close terminal',
     terminalOutput: 'Terminal output',
     terminalCommand: 'Terminal command',
+    backToTop: 'Back to top',
   },
   id: {
     skip: 'Langsung ke konten',
@@ -48,6 +49,8 @@ const FRAME_TEXT = {
     closeTerminal: 'Tutup terminal',
     terminalOutput: 'Keluaran terminal',
     terminalCommand: 'Perintah terminal',
+    // Starts with the button's visible word "top" (WCAG 2.5.3).
+    backToTop: 'top: kembali ke atas',
   },
 } satisfies Record<Lang, Record<string, string>>;
 

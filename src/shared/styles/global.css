@@ -12,6 +12,8 @@ html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
   scroll-padding-top: 24px;
+  /* Room for the back-to-top button: an element focused near the bottom scrolls clear of it. */
+  scroll-padding-bottom: 76px;
   /* Keep the scrollbar's space, so locking the scroll below does not shift the page sideways. */
   scrollbar-gutter: stable;
 }
