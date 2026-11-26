@@ -4,7 +4,7 @@ summary: "A green-phosphor dark theme for VS Code in three variants, built from 
 year: "2026"
 role: "Personal project: colour design and development"
 timeline: "14 Nov 2026 → 15 Nov 2026"
-status: "Live (v0.1.1)"
+status: "Live (v0.1.2)"
 stack: ["VS Code", "JavaScript", "Node.js"]
 order: 0
 draft: false
@@ -14,7 +14,7 @@ highlights:
   problem: "I wanted my editor to share the NubiBuilds palette, but a VS Code theme is over 800 colour slots, and transparent highlights quietly break contrast when you tune them by eye."
   architecture: "One Node script holds the palette and generates three theme files, accepting that the JSON can never be edited by hand again."
   implementation: "Contrast is computed after every transparent layer is composited onto the real background, so selection, search, diff and debug highlights are tuned to numbers, not taste."
-  result: "Three themes, 837 colour IDs each, 1,277 contrast checks per theme with 0 failures, released as a 45 KB .vsix."
+  result: "Three themes, 837 colour IDs each, 1,277 contrast checks per theme with 0 failures, released as a 46 KB .vsix."
 
 metrics:
   - value: "1,277 / 0"
@@ -78,7 +78,7 @@ The theme files are not written; they are generated. A single script, `scripts/b
   check-coverage.mjs   IDs vs. 971 official IDs
             │  any failure → exit 1
             ▼
-  vsce package  →  nubibuilds-dark-0.1.1.vsix
+  vsce package  →  nubibuilds-dark-0.1.2.vsix
 ```
 
 ### One accent, four colours with fixed jobs
@@ -197,10 +197,11 @@ Most of the generator and the check scripts were written with Claude Code. I wro
 2. 14 Nov: Dark Void and Dark Float added; every check now runs once per variant.
 3. 14 Nov: manual tests recorded, previews for 20 languages rendered, MIT licence added; v0.1.0 published on the VS Code Marketplace at 23:55.
 4. 15 Nov: extension icon and a polished Marketplace description, released as v0.1.1 on the Marketplace and on GitHub.
+5. 26 Nov: v0.1.2 on the Marketplace and on GitHub, a documentation-only release: Marketplace install steps in the README, the language previews linked, and a cover whose five dots show the accent and the four supporting colours. The themes are unchanged.
 
 ## Result
 
-NubiBuilds Dark v0.1.1 is live on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=danaharliansyah.nubibuilds-dark), so it installs from the Extensions view: search for NubiBuilds Dark, or open Quick Open (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>P</kbd>) and run `ext install danaharliansyah.nubibuilds-dark`. The same release is [on GitHub](https://github.com/nubibuilds/nubibuilds-vscode-theme/releases/tag/v0.1.1) as a single `.vsix` of about 45 KB with all three themes. The screenshots on this page are of that release, installed in VS Code 1.148.[^1]
+NubiBuilds Dark v0.1.2 is live on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=danaharliansyah.nubibuilds-dark), so it installs from the Extensions view: search for NubiBuilds Dark, or open Quick Open (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>P</kbd>) and run `ext install danaharliansyah.nubibuilds-dark`. The same release is [on GitHub](https://github.com/nubibuilds/nubibuilds-vscode-theme/releases/tag/v0.1.2) as a single `.vsix` of about 46 KB with all three themes. The screenshots on this page were taken with v0.1.1, whose themes are identical, installed in VS Code 1.148.[^1]
 
 - **1,277 contrast checks per theme, 0 failures**, in all three themes: 162 text-on-surface pairs, 854 syntax-on-overlay pairs, 57 UI indicators, 167 UI text pairs, 28 category distances and 9 documented exceptions.[^2]
 - **4.51:1** is the lowest text contrast anywhere: comments under a symbol highlight on Float's current line. Dark and Void bottom out at 4.54:1.
@@ -224,6 +225,6 @@ What I cannot measure yet is whether anyone else uses it. The listing went live 
 - **Check the artefact, not the intent.** Reading the built JSON instead of the source values is what caught the 12% → 4.49:1 rounding case.
 - **A small palette is easier to check.** Five working colours with fixed jobs left only 28 category pairs to keep apart, and made the theme easier to read.
 
-[^1]: Taken on 26 November 2026 in a clean VS Code 1.148 profile with the v0.1.1 `.vsix` installed, on a copy of the repository's `samples/` folder. TypeScript diagnostics were turned off so that sample-only type errors do not distract from the colours.
+[^1]: Taken on 26 November 2026 in a clean VS Code 1.148 profile with the v0.1.1 `.vsix` installed (v0.1.2 changes only the documentation), on a copy of the repository's `samples/` folder. TypeScript diagnostics were turned off so that sample-only type errors do not distract from the colours.
 
 [^2]: From `npm run check` on commit `5fdaac9`, 26 November 2026. The nine exceptions are held to 3:1 instead of 4.5:1: line numbers, whitespace and ignored files (`faint`) on each surface, and ANSI bright black under the terminal selection.

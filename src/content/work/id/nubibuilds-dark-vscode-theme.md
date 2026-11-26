@@ -4,7 +4,7 @@ summary: "Tema gelap bernuansa fosfor hijau untuk VS Code dalam tiga varian, dib
 year: "2026"
 role: "Proyek pribadi: desain warna dan development"
 timeline: "14 Nov 2026 → 15 Nov 2026"
-status: "Live (v0.1.1)"
+status: "Live (v0.1.2)"
 stack: ["VS Code", "JavaScript", "Node.js"]
 order: 0
 draft: false
@@ -14,7 +14,7 @@ highlights:
   problem: "Saya ingin editor saya memakai palet NubiBuilds, tetapi tema VS Code punya lebih dari 800 slot warna, dan sorotan transparan diam-diam merusak kontras kalau diatur hanya dengan mata."
   architecture: "Satu skrip Node menyimpan palet dan menghasilkan tiga file tema, dengan konsekuensi file JSON-nya tidak boleh lagi diedit tangan."
   implementation: "Kontras dihitung setelah setiap lapisan transparan ditumpuk di atas latar yang sebenarnya, jadi sorotan seleksi, pencarian, diff, dan debug diatur berdasarkan angka, bukan selera."
-  result: "Tiga tema, masing-masing 837 Color ID, 1.277 pemeriksaan kontras per tema tanpa satu pun gagal, dirilis sebagai .vsix 45 KB."
+  result: "Tiga tema, masing-masing 837 Color ID, 1.277 pemeriksaan kontras per tema tanpa satu pun gagal, dirilis sebagai .vsix 46 KB."
 
 metrics:
   - value: "1,277 / 0"
@@ -78,7 +78,7 @@ File tema tidak ditulis, tetapi dihasilkan. Satu skrip, `scripts/build-theme.mjs
   check-coverage.mjs   ID vs. 971 ID resmi
             │  ada yang gagal → exit 1
             ▼
-  vsce package  →  nubibuilds-dark-0.1.1.vsix
+  vsce package  →  nubibuilds-dark-0.1.2.vsix
 ```
 
 ### Satu aksen, empat warna dengan tugas tetap
@@ -197,10 +197,11 @@ Sebagian besar skrip generator dan pemeriksa ditulis bersama Claude Code. Saya m
 2. 14 Nov: Dark Void dan Dark Float ditambahkan; setiap pemeriksaan kini berjalan sekali per varian.
 3. 14 Nov: hasil uji manual dicatat, pratinjau untuk 20 bahasa dirender, lisensi MIT ditambahkan; v0.1.0 tayang di VS Code Marketplace pukul 23.55.
 4. 15 Nov: ikon extension dan deskripsi Marketplace yang dirapikan, dirilis sebagai v0.1.1 di Marketplace dan GitHub.
+5. 26 Nov: v0.1.2 di Marketplace dan GitHub, rilis yang hanya mengubah dokumentasi: langkah instalasi dari Marketplace di README, tautan ke pratinjau bahasa, dan cover yang lima titiknya kini menampilkan aksen dan empat warna pendukung. Temanya tidak berubah.
 
 ## Hasil
 
-NubiBuilds Dark v0.1.1 sudah tayang di [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=danaharliansyah.nubibuilds-dark), jadi bisa dipasang langsung dari tampilan Extensions: cari NubiBuilds Dark, atau buka Quick Open (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>P</kbd>) lalu jalankan `ext install danaharliansyah.nubibuilds-dark`. Rilis yang sama ada [di GitHub](https://github.com/nubibuilds/nubibuilds-vscode-theme/releases/tag/v0.1.1) berupa satu `.vsix` sekitar 45 KB berisi ketiga tema. Tangkapan layar di halaman ini diambil dari rilis tersebut, terpasang di VS Code 1.148.[^1]
+NubiBuilds Dark v0.1.2 sudah tayang di [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=danaharliansyah.nubibuilds-dark), jadi bisa dipasang langsung dari tampilan Extensions: cari NubiBuilds Dark, atau buka Quick Open (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>P</kbd>) lalu jalankan `ext install danaharliansyah.nubibuilds-dark`. Rilis yang sama ada [di GitHub](https://github.com/nubibuilds/nubibuilds-vscode-theme/releases/tag/v0.1.2) berupa satu `.vsix` sekitar 46 KB berisi ketiga tema. Tangkapan layar di halaman ini diambil dengan v0.1.1, yang temanya identik, terpasang di VS Code 1.148.[^1]
 
 - **1.277 pemeriksaan kontras per tema, 0 gagal**, di ketiga tema: 162 pasangan teks di atas permukaan, 854 pasangan syntax di atas lapisan transparan, 57 indikator UI, 167 pasangan teks UI, 28 jarak kategori, dan 9 pengecualian yang terdokumentasi.[^2]
 - **4,51:1** adalah kontras teks terendah di mana pun: komentar di bawah sorotan simbol pada baris aktif di Float. Dark dan Void paling rendah 4,54:1.
@@ -224,6 +225,6 @@ Yang belum bisa saya ukur adalah apakah orang lain memakainya. Listing-nya tayan
 - **Periksa hasil build, bukan niat.** Membaca JSON hasil build, bukan nilai di sumber, adalah yang menangkap kasus pembulatan 12% → 4,49:1.
 - **Palet kecil lebih mudah diperiksa.** Lima warna kerja dengan tugas tetap hanya menyisakan 28 pasangan kategori yang perlu dijaga jaraknya, dan membuat temanya lebih mudah dibaca.
 
-[^1]: Diambil pada 26 November 2026 di profil VS Code 1.148 yang bersih dengan `.vsix` v0.1.1 terpasang, pada salinan folder `samples/` dari repositori. Diagnostik TypeScript dimatikan supaya error tipe yang hanya ada di file contoh tidak mengalihkan perhatian dari warnanya.
+[^1]: Diambil pada 26 November 2026 di profil VS Code 1.148 yang bersih dengan `.vsix` v0.1.1 terpasang (v0.1.2 hanya mengubah dokumentasi), pada salinan folder `samples/` dari repositori. Diagnostik TypeScript dimatikan supaya error tipe yang hanya ada di file contoh tidak mengalihkan perhatian dari warnanya.
 
 [^2]: Dari `npm run check` pada commit `5fdaac9`, 26 November 2026. Sembilan pengecualian itu memakai batas 3:1, bukan 4,5:1: nomor baris, whitespace, dan file yang di-ignore (`faint`) di setiap permukaan, serta ANSI bright black di bawah seleksi terminal.
