@@ -87,3 +87,7 @@ The site runs on Cloudflare Workers (static assets) at `nubibuilds.dev`, configu
 
 No adapter is needed: the site is static. `.github/workflows/ci.yml` runs the type-check, build,
 end-to-end tests and Lighthouse on every push to `main` and on every pull request.
+
+## License
+
+[MIT](LICENSE) © 2026 Dana Harliansyah
