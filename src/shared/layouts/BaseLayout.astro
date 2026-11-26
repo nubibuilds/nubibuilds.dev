@@ -55,14 +55,37 @@ const canonical = pageUrl(Astro.url.pathname);
 const defaultAlternate = alternates.find((alt) => alt.lang === 'en') ?? alternates[0];
 const analyticsToken = import.meta.env.PROD ? site.analytics.cloudflareToken : '';
 
+/*
+ * Two linked entities: the person (owner's real name, with the brand as alternateName) and the
+ * website (the brand), whose author and publisher point at the person by @id. This tells search
+ * engines that "NubiBuilds" and the owner's name refer to the same person.
+ */
+const home = absolute('/');
+const personId = `${home}#person`;
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'Person',
-  name: site.name,
-  jobTitle: site.role,
-  description: site.description,
-  url: absolute('/'),
-  sameAs: [site.links.github, site.links.linkedin].filter(Boolean),
+  '@graph': [
+    {
+      '@type': 'Person',
+      '@id': personId,
+      name: site.owner.name,
+      alternateName: site.name,
+      jobTitle: site.role,
+      description: site.description,
+      url: home,
+      sameAs: [site.links.github, site.links.linkedin].filter(Boolean),
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${home}#website`,
+      name: site.name,
+      url: home,
+      description: site.description,
+      inLanguage: ['en', 'id'],
+      author: { '@id': personId },
+      publisher: { '@id': personId },
+    },
+  ],
 };
 ---
 
